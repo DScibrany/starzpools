@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>STARZ Pasienky — dostupnosť dráh</title>
+  <title>STARZ Pasienky 25 m — voľné dráhy</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -12,38 +12,40 @@
     <div class="meta">
       <span id="now"></span>
       <span id="status-pill" class="pill"></span>
-      <a id="source-link" href="https://bratislava.sk/vzdelavanie-a-volny-cas/starz/prevadzky-sportoviska/mestska-plavaren-pasienky-25m" target="_blank" rel="noopener">Zdroj: STARZ</a>
+      <a href="https://bratislava.sk/vzdelavanie-a-volny-cas/starz/prevadzky-sportoviska/mestska-plavaren-pasienky-25m" target="_blank" rel="noopener">Zdroj: STARZ</a>
     </div>
   </header>
 
-  <nav class="days" id="days"></nav>
-
   <main>
-    <section class="today">
-      <h2 id="day-title"></h2>
-      <p id="hours" class="muted"></p>
+    <section class="hero">
+      <div class="card">
+        <h3>Práve teraz</h3>
+        <div class="big" id="now-big">—</div>
+        <div class="sub" id="now-sub"></div>
+        <div class="next muted" id="now-next"></div>
+      </div>
+      <div class="card" id="today-blocks"></div>
     </section>
 
-    <section class="grid-wrap">
+    <h2 class="section-title">Dostupnosť po 15 minútach (14 dní)</h2>
+    <div class="grid-wrap">
       <div class="grid" id="grid"></div>
-    </section>
+    </div>
 
-    <section class="legend">
-      <span><i class="sw public"></i> Verejnosť</span>
-      <span><i class="sw reserved"></i> Rezervované (klub/tréning)</span>
-      <span><i class="sw closed"></i> Zatvorené</span>
-      <span><i class="sw now"></i> Aktuálny čas</span>
-    </section>
-
-    <section class="summary" id="summary"></section>
+    <div class="legend">
+      <span>voľných dráh:</span>
+      <span><i class="sw lane-0"></i> 0 (mimo verejnosti)</span>
+      <span><i class="sw lane-1"></i> 1</span>
+      <span><i class="sw lane-2"></i> 2</span>
+      <span><i class="sw lane-3"></i> 3</span>
+      <span><i class="sw lane-4"></i> 4</span>
+      <span><i class="sw now"></i> práve teraz</span>
+    </div>
   </main>
 
   <footer>
-    <p class="muted">
-      Rozvrh sa načítava z <code>schedule.json</code>. Aktualizujte tento súbor podľa
-      aktuálneho rozvrhu na stránke STARZ.
-      <span id="updated"></span>
-    </p>
+    Rozvrh z tabuľky STARZ (aktualizuje sa denne). Uložené lokálne v <code>schedule.json</code>.
+    <span id="updated"></span>
   </footer>
 
   <script src="app.js"></script>
