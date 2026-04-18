@@ -1,15 +1,26 @@
 # STARZ Pasienky — dostupnosť dráh
 
-Jednoduchý statický dashboard, ktorý vizualizuje obsadenosť dráh 25-metrového
-bazénu Mestskej plavárne Pasienky (STARZ Bratislava) po dňoch a časových
-blokoch.
+Jednoduchý statický dashboard, ktorý vizualizuje počet voľných dráh pre
+verejnosť v 25-metrovom bazéne Mestskej plavárne Pasienky (STARZ Bratislava)
+v 15-minútových blokoch na 14 dní dopredu.
 
 Zdroj rozvrhu:
-https://bratislava.sk/vzdelavanie-a-volny-cas/starz/prevadzky-sportoviska/mestska-plavaren-pasienky-25m
+<https://bratislava.sk/vzdelavanie-a-volny-cas/starz/prevadzky-sportoviska/mestska-plavaren-pasienky-25m>
+
+## Ukážka
+
+![Dashboard — desktop](docs/screenshot-desktop.png)
+
+<details>
+<summary>Mobilné zobrazenie</summary>
+
+![Dashboard — mobile](docs/screenshot-mobile.png)
+
+</details>
 
 ## Spustenie
 
-Je to statická stránka — stačí ju otvoriť cez lokálny HTTP server (kvôli
+Statická stránka — stačí ju otvoriť cez lokálny HTTP server (kvôli
 `fetch("schedule.json")`):
 
 ```
@@ -19,38 +30,38 @@ python3 -m http.server 8000
 
 ## Ako aktualizovať rozvrh
 
-Zdrojová stránka STARZ blokuje automatické sťahovanie, preto sa rozvrh
-udržiava ručne v súbore [`schedule.json`](./schedule.json). Hodnoty v
-repozitári sú **šablóna** — prekopírujte do nej aktuálny rozvrh zo stránky
-STARZ.
+STARZ publikuje tabuľku „Počet voľných dráh“ po 15-minútových blokoch.
+Dáta sa ukladajú do [`schedule.json`](./schedule.json) v tvare:
 
-Štruktúra:
+```json
+{
+  "slotMinutes": 15,
+  "dayStart": "05:00",
+  "dayEnd": "24:00",
+  "maxLanes": 4,
+  "days": [
+    { "date": "2026-04-18", "weekday": "sobota",
+      "free": [0, 0, /* … 76 hodnôt, 05:00–23:45 … */ 0] }
+  ]
+}
+```
 
-- `lanes` — počet dráh (Pasienky 25 m má 6).
-- `dayStart`, `dayEnd`, `slotMinutes` — rozsah a granularita mriežky
-  (30-minútové bloky 04:00–22:00).
-- `hours[deň]` — otváracie hodiny pre daný deň.
-- `schedule[deň]` — pole blokov:
-  - `start`, `end` — čas bloku (`HH:MM`).
-  - `lanes` — zoznam čísel dráh, ktorých sa blok týka.
-  - `status` — `public` (verejnosť) alebo `reserved` (klub/škola/tréning).
-  - `label` — voliteľný popis rezervácie (zobrazí sa v tooltipe).
-
-Bloky sa môžu prekrývať iba v zmysle „iné dráhy v tom istom čase“. Bunka sa
-kreslí ako *closed* vtedy, keď pre danú dráhu a čas neexistuje žiadny blok,
-alebo keď je mimo otváracích hodín.
+Každý deň má 76 hodnôt (19 hodín × 4 bloky). Hodnota = počet dráh voľných
+pre verejnosť v danom bloku, 0 znamená mimo verejnej prevádzky.
 
 ## Funkcie
 
-- Výber dňa (s označením „dnes“).
-- Mriežka dráha × čas so stavmi verejnosť / rezervované / zatvorené.
-- Pre dnešok zvýraznený aktuálny 30-minútový blok a súhrn
-  „X/6 dráh voľných pre verejnosť“.
+- Karta **Práve teraz** s počtom voľných dráh pre aktuálny 15-min blok.
+- Čas do konca prebiehajúceho bloku, resp. čas do najbližšieho verejného bloku.
+- Zoznam dnešných verejných blokov s označením prebiehajúce / skončilo.
+- **Heatmapa** 14 dní × 76 blokov s farbou podľa počtu voľných dráh,
+  zvýraznený dnešný riadok a aktuálna bunka.
 - Automatická obnova každých 30 s.
 
 ## Súbory
 
 - `index.html` — rozloženie stránky.
 - `styles.css` — štýly.
-- `app.js` — načítanie dát a render mriežky.
-- `schedule.json` — údaje rozvrhu (upravujte ručne).
+- `app.js` — načítanie dát a render.
+- `schedule.json` — údaje rozvrhu.
+- `docs/` — snímky pre README.
