@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>STARZ Pasienky — dostupnosť dráh</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>Mestská plaváreň Pasienky <span class="muted">25 m</span></h1>
+    <div class="meta">
+      <span id="now"></span>
+      <span id="status-pill" class="pill"></span>
+      <a id="source-link" href="https://bratislava.sk/vzdelavanie-a-volny-cas/starz/prevadzky-sportoviska/mestska-plavaren-pasienky-25m" target="_blank" rel="noopener">Zdroj: STARZ</a>
+    </div>
+  </header>
+
+  <nav class="days" id="days"></nav>
+
+  <main>
+    <section class="today">
+      <h2 id="day-title"></h2>
+      <p id="hours" class="muted"></p>
+    </section>
+
+    <section class="grid-wrap">
+      <div class="grid" id="grid"></div>
+    </section>
+
+    <section class="legend">
+      <span><i class="sw public"></i> Verejnosť</span>
+      <span><i class="sw reserved"></i> Rezervované (klub/tréning)</span>
+      <span><i class="sw closed"></i> Zatvorené</span>
+      <span><i class="sw now"></i> Aktuálny čas</span>
+    </section>
+
+    <section class="summary" id="summary"></section>
+  </main>
+
+  <footer>
+    <p class="muted">
+      Rozvrh sa načítava z <code>schedule.json</code>. Aktualizujte tento súbor podľa
+      aktuálneho rozvrhu na stránke STARZ.
+      <span id="updated"></span>
+    </p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
