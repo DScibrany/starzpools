@@ -342,6 +342,16 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
   font-weight: 600;
 }
 .price-table .empty { color: #64748b; font-style: italic; font-weight: 400; font-size: 12px; }
+.price-table .old {
+  color: #64748b;
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  font-size: 12px;
+  margin-right: 6px;
+  font-weight: 400;
+}
+.price-table .new { color: var(--text); font-weight: 700; }
+.price-table td.active .new { color: var(--accent); }
 
 .pricing-section .section-note { margin: 8px 0 0; font-size: 12px; }
 .pricing-foot { margin: 12px 0 0; font-size: 12px; }

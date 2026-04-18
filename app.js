@@ -445,11 +445,17 @@ function renderPricing() {
     return;
   }
   const cur = state.pricing.currency || "€";
-  const fmtPrice = (v) => {
-    if (!v) return `<span class="empty">— doplňte —</span>`;
+  const withUnit = (v) => {
     if (v === "—" || v.toLowerCase() === "dohodou") return v;
     if (/\d/.test(v) && !v.includes(cur) && !v.includes("%")) return `${v} ${cur}`;
     return v;
+  };
+  const fmtPrice = (newVal, oldVal) => {
+    if (!newVal && !oldVal) return `<span class="empty">— doplňte —</span>`;
+    const parts = [];
+    if (oldVal) parts.push(`<span class="old">${withUnit(oldVal)}</span>`);
+    if (newVal) parts.push(`<span class="new">${withUnit(newVal)}</span>`);
+    return parts.join(" ");
   };
 
   if (banner) {
@@ -469,8 +475,8 @@ function renderPricing() {
         <td class="code">${r.code || ""}</td>
         <td class="desc">${r.label || ""}</td>
         <td class="unit">${r.unit || ""}</td>
-        <td${highlight50}>${fmtPrice(r.p50)}</td>
-        <td${highlight25}>${fmtPrice(r.p25)}</td>
+        <td${highlight50}>${fmtPrice(r.p50, r.p50Old)}</td>
+        <td${highlight25}>${fmtPrice(r.p25, r.p25Old)}</td>
       </tr>`;
     }).join("");
     const note = sec.note ? `<p class="section-note muted">${sec.note}</p>` : "";
