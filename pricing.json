@@ -6,6 +6,20 @@
   "issuedBy": "STARZ — Správa telovýchovných a rekreačných zariadení hl. m. SR Bratislavy",
   "priceNote": "V PDF sú pri niektorých riadkoch dve ceny — prvá (prečiarknutá) je pôvodná, druhá je aktuálne platná. Zobrazujú sa tu obe, platná je zvýraznená. DPH sa účtuje v zmysle platných predpisov.",
   "transitional": "V čase od pondelka 22.12.2025 do nedele 11.01.2026 vrátane platí na 25 m bazéne jednotné vstupné 3,00 € / 90 min za osobu.",
+  "holidays": [],
+  "bands": {
+    "peak":    { "workdayOnly": true,  "ranges": [["06:00","09:00"], ["15:00","20:00"]] },
+    "offpeak": { "workdayOnly": false, "ranges": [["09:00","15:00"], ["20:00","22:00"]] }
+  },
+  "bandLabels": {
+    "peak":    "pracovný deň · špička (6–9 a 15–20)",
+    "offpeak": "mimo špičky · víkend a sviatok",
+    "outside": "mimo predaja vstupeniek"
+  },
+  "bandCodes": {
+    "peak":    { "adult": { "60": "A3", "90": "A4" }, "reduced": { "60": "B3", "90": "B4" } },
+    "offpeak": { "adult": { "60": "A1", "90": "A2" }, "reduced": { "60": "B1", "90": "B2" } }
+  },
   "sections": [
     {
       "title": "A — Individuálne vstupné (fyzická osoba)",

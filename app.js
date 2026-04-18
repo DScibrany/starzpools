@@ -23,6 +23,7 @@ const todayISO = (d = new Date()) =>
 
 const state = {
   pool: "25m",
+  view: "dashboard",
   data: { "25m": null, "50m": null },
   pricing: null,
   finderHits: [],
@@ -44,12 +45,142 @@ async function load() {
   state.data["50m"] = d50;
   state.pricing = pricing;
 
+  setupViews();
   setupTabs();
   setupFinder();
   setupLinks();
   renderPricing();
   render();
   setInterval(render, 30_000);
+}
+
+function setupViews() {
+  const tabs = document.querySelectorAll(".view-tab");
+  const apply = (name) => {
+    state.view = name;
+    tabs.forEach(x => {
+      const active = x.dataset.view === name;
+      x.classList.toggle("active", active);
+      x.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    document.getElementById("dashboard-view").hidden = name !== "dashboard";
+    document.getElementById("pricing-view").hidden = name !== "pricing";
+    if (location.hash.slice(1) !== name) history.replaceState(null, "", "#" + name);
+  };
+  tabs.forEach(t => t.addEventListener("click", () => apply(t.dataset.view)));
+  const fromHash = location.hash.slice(1);
+  apply(fromHash === "pricing" ? "pricing" : "dashboard");
+}
+
+function isHoliday(iso) {
+  return Array.isArray(state.pricing?.holidays) && state.pricing.holidays.includes(iso);
+}
+
+function bandForMinOnDate(iso, minOfDay) {
+  const p = state.pricing;
+  if (!p?.bands) return "outside";
+  const [y, mo, d] = iso.split("-").map(Number);
+  const dt = new Date(y, mo - 1, d);
+  const dow = dt.getDay();
+  const isWeekend = dow === 0 || dow === 6;
+  const workday = !isWeekend && !isHoliday(iso);
+  const inRange = (ranges) => ranges.some(([a, b]) => {
+    const am = toMin(a), bm = toMin(b);
+    return minOfDay >= am && minOfDay < bm;
+  });
+  for (const [name, def] of Object.entries(p.bands)) {
+    if (def.workdayOnly && !workday) continue;
+    if (inRange(def.ranges)) return name;
+  }
+  if (!workday) {
+    for (const [name, def] of Object.entries(p.bands)) {
+      if (def.workdayOnly) continue;
+      if (inRange(def.ranges)) return name;
+    }
+  }
+  return "outside";
+}
+
+function bandForDate(date) {
+  const iso = todayISO(date);
+  return bandForMinOnDate(iso, date.getHours() * 60 + date.getMinutes());
+}
+
+function findPricingRow(code) {
+  if (!code || !state.pricing?.sections) return null;
+  for (const sec of state.pricing.sections) {
+    for (const r of (sec.rows || [])) {
+      if (r.code === code) return r;
+    }
+  }
+  return null;
+}
+
+function priceFor(pool, band, category, duration) {
+  const codes = state.pricing?.bandCodes?.[band]?.[category];
+  if (!codes) return null;
+  const code = codes[duration];
+  if (!code) return null;
+  const row = findPricingRow(code);
+  if (!row) return null;
+  const key = pool === "50m" ? "p50" : "p25";
+  const oldKey = key + "Old";
+  return { code, value: row[key], old: row[oldKey] };
+}
+
+function bandLabel(band) {
+  return state.pricing?.bandLabels?.[band] || band;
+}
+
+function priceWithCurrency(v) {
+  const cur = state.pricing?.currency || "€";
+  if (!v) return "";
+  if (v === "—" || v.toLowerCase?.() === "dohodou") return v;
+  if (/\d/.test(v) && !v.includes(cur) && !v.includes("%")) return `${v} ${cur}`;
+  return v;
+}
+
+function renderBandChip(el, band) {
+  if (!el) return;
+  el.className = `band-chip ${band}`;
+  el.textContent = bandLabel(band);
+}
+
+function renderNowPrices(box, band) {
+  if (!box) return;
+  if (!state.pricing || band === "outside") {
+    const msg = band === "outside"
+      ? (state.pricing?.bandLabels?.outside || "mimo predaja vstupeniek")
+      : "";
+    box.innerHTML = msg ? `<span class="np-note">${msg}</span>` : "";
+    return;
+  }
+  const durations = [60, 90];
+  const items = [];
+  for (const dur of durations) {
+    const adult = priceFor(state.pool, band, "adult", dur);
+    const reduced = priceFor(state.pool, band, "reduced", dur);
+    if (!adult && !reduced) continue;
+    items.push(`
+      <div class="np">
+        <span class="np-lbl">${dur} min</span>
+        <span class="np-val">${adult?.old ? `<span class="np-old">${priceWithCurrency(adult.old)}</span>` : ""}${priceWithCurrency(adult?.value || "—")}</span>
+        ${reduced ? `<span class="np-lbl" title="zľavnené (ŤZP, do 18 r.)">zľavnené${reduced.old ? ` <span class="np-old">${priceWithCurrency(reduced.old)}</span>` : ""} ${priceWithCurrency(reduced.value)}</span>` : ""}
+      </div>
+    `);
+  }
+  box.innerHTML = items.join("") || `<span class="np-note">${bandLabel(band)}</span>`;
+}
+
+function priceChipHTML(pool, band, duration) {
+  if (band === "outside" || !state.pricing?.bandCodes) {
+    return `<span class="price-chip muted"><span class="pc-band">mimo predaja</span></span>`;
+  }
+  const p = priceFor(pool, band, "adult", duration);
+  if (!p) return "";
+  const label = band === "peak" ? "špička" : band === "offpeak" ? "mimo šp." : band;
+  const oldHtml = p.old ? `<span class="pc-old">${priceWithCurrency(p.old)}</span>` : "";
+  return `<span class="price-chip"><span class="pc-band">${label} · ${duration}m</span><span class="pc-price">${oldHtml}${priceWithCurrency(p.value || "—")}</span></span>`;
 }
 
 function activeData() { return state.data[state.pool]; }
@@ -164,6 +295,10 @@ function renderNow(now, data) {
   const sub = document.getElementById("now-sub");
   const next = document.getElementById("now-next");
   const card = document.getElementById("now-card");
+  const chip = document.getElementById("band-chip");
+  const pricesBox = document.getElementById("now-prices");
+
+  renderBandChip(chip, bandForDate(now));
 
   if (!day) {
     card.classList.remove("live");
@@ -172,6 +307,7 @@ function renderNow(now, data) {
     big.textContent = "—";
     sub.textContent = "Pre dnešný dátum nie je v rozvrhu záznam.";
     next.textContent = "";
+    if (pricesBox) pricesBox.innerHTML = "";
     return;
   }
 
@@ -193,6 +329,8 @@ function renderNow(now, data) {
     card.classList.remove("live");
     sub.textContent = "pre verejnosť práve nie sú k dispozícii dráhy";
   }
+
+  renderNowPrices(pricesBox, bandForDate(now));
 
   let nextIdx = -1;
   const startSearch = Math.max(0, idx + (currentFree === 0 ? 0 : 1));
@@ -401,17 +539,21 @@ function renderFinderResults(hits) {
     box.innerHTML = `<div class="empty">Nenašli sa žiadne zhodné bloky. Skúste iný čas alebo menej dráh.</div>`;
     return;
   }
+  const lenMin = Number(document.getElementById("finder-len").value);
   const parts = [`<div class="group">Nájdené okná: ${hits.length}</div>`];
   for (const h of hits) {
     const [, m, d] = h.date.split("-");
     const lenH = Math.floor((h.endMin - h.startMin) / 60);
     const lenM = (h.endMin - h.startMin) % 60;
     const lenStr = lenH ? `${lenH} h${lenM ? " " + lenM + " min" : ""}` : `${lenM} min`;
+    const band = bandForMinOnDate(h.date, h.startMin);
+    const chip = priceChipHTML(state.pool, band, lenMin);
     parts.push(`<div class="hit">
       <span class="d">${WEEKDAY_SHORT[h.weekday] || h.weekday} ${d}.${m}.</span>
       <span class="t">${fmt(h.startMin)}–${fmt(h.endMin)}</span>
       <span class="len muted">${lenStr}</span>
       <span class="l">≥${h.lanes} ${h.lanes === 1 ? "dráha" : "dráhy"}</span>
+      ${chip}
     </div>`);
   }
   box.innerHTML = parts.join("");

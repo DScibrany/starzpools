@@ -61,6 +61,35 @@ header .meta { display: flex; gap: 12px; align-items: center; font-size: 13px; c
 
 .muted { color: var(--muted); }
 
+.views {
+  display: flex;
+  gap: 4px;
+  padding: 10px 24px 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+.view-tab {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  padding: 10px 18px;
+  border-radius: 10px 10px 0 0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  position: relative;
+  top: 1px;
+}
+.view-tab:hover { color: var(--text); }
+.view-tab.active {
+  background: var(--panel);
+  color: var(--accent);
+  border-color: var(--line);
+  box-shadow: 0 -2px 0 0 var(--accent) inset;
+}
+
 .pools {
   display: flex;
   gap: 6px;
@@ -84,6 +113,8 @@ header .meta { display: flex; gap: 12px; align-items: center; font-size: 13px; c
   color: var(--accent);
   border-color: var(--accent);
 }
+
+.view[hidden] { display: none; }
 
 main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
 
@@ -132,7 +163,48 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
   0%, 100% { opacity: 0.25; }
   50%      { opacity: 0.85; }
 }
-.now-card h3 { color: var(--accent); letter-spacing: .14em; }
+.now-card h3 { color: var(--accent); letter-spacing: .14em; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.band-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  font-weight: 600;
+}
+.band-chip.peak { background: rgba(244, 63, 94, 0.15); color: #fda4af; border-color: rgba(244, 63, 94, 0.45); }
+.band-chip.offpeak { background: rgba(34, 197, 94, 0.12); color: #86efac; border-color: rgba(34, 197, 94, 0.4); }
+.band-chip.outside { background: #1a2336; color: var(--muted); }
+
+.now-prices {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.now-prices .np {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 78px;
+}
+.now-prices .np .np-lbl { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.now-prices .np .np-val { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; font-size: 15px; }
+.now-prices .np .np-old { color: #64748b; text-decoration: line-through; font-size: 11px; font-weight: 400; margin-right: 4px; }
+.now-prices .np.muted .np-val { color: var(--muted); font-weight: 500; font-size: 13px; }
+.now-prices .np-note { font-size: 11px; color: var(--muted); align-self: center; }
 .now-card .big {
   font-size: 64px;
   font-weight: 800;
@@ -228,6 +300,23 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
 .finder-results .hit .t { font-weight: 600; font-variant-numeric: tabular-nums; min-width: 120px; }
 .finder-results .hit .l { color: var(--lane-4); font-weight: 600; }
 .finder-results .hit .len { font-size: 12px; min-width: 90px; }
+.finder-results .hit .price-chip {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.finder-results .hit .price-chip .pc-band { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.finder-results .hit .price-chip .pc-price { color: var(--accent); font-weight: 700; }
+.finder-results .hit .price-chip .pc-old { color: #64748b; text-decoration: line-through; font-size: 11px; margin-right: 2px; }
+.finder-results .hit .price-chip.muted .pc-price { color: var(--muted); font-weight: 500; }
 .finder-results .empty { color: var(--muted); font-size: 13px; padding: 8px 2px; }
 
 .grid-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); position: relative; }
