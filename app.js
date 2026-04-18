@@ -67,6 +67,7 @@ function setupTabs() {
       setupLinks();
       state.finderHits = [];
       document.getElementById("finder-results").innerHTML = "";
+      renderPricing();
       render();
     });
   });
@@ -436,27 +437,70 @@ function applyFinderHighlight() {
 function renderPricing() {
   const body = document.getElementById("pricing-body");
   const foot = document.querySelector(".pricing-foot");
+  const banner = document.getElementById("pricing-banner");
+  const priceNote = document.getElementById("pricing-note");
+  const activePool = state.pool;
   if (!state.pricing || !state.pricing.sections) {
     body.innerHTML = `<div class="empty-state">Cenník nie je k dispozícii. Pridajte hodnoty do <code>pricing.json</code>.</div>`;
     return;
   }
   const cur = state.pricing.currency || "€";
-  body.innerHTML = state.pricing.sections.map(sec => `
-    <div class="pricing-section">
-      <h4>${sec.title}</h4>
-      <ul>
-        ${sec.items.map(it => `
-          <li>
-            <span class="label">${it.label}</span>
-            <span class="price ${it.price ? "" : "empty"}">${it.price ? `${it.price} ${cur}`.replace(`${cur} ${cur}`, cur) : ""}</span>
-          </li>
-        `).join("")}
-      </ul>
-    </div>
-  `).join("");
-  if (state.pricing.updated) {
-    foot.textContent = `Zdroj: oficiálny cenník STARZ (PDF). Posledná aktualizácia údajov: ${state.pricing.updated}.`;
+  const fmtPrice = (v) => {
+    if (!v) return `<span class="empty">— doplňte —</span>`;
+    if (v === "—" || v.toLowerCase() === "dohodou") return v;
+    if (/\d/.test(v) && !v.includes(cur) && !v.includes("%")) return `${v} ${cur}`;
+    return v;
+  };
+
+  if (banner) {
+    banner.textContent = state.pricing.transitional || "";
+    banner.style.display = state.pricing.transitional ? "" : "none";
   }
+  if (priceNote) {
+    priceNote.textContent = state.pricing.priceNote || "";
+    priceNote.style.display = state.pricing.priceNote ? "" : "none";
+  }
+
+  body.innerHTML = state.pricing.sections.map(sec => {
+    const rows = (sec.rows || []).map(r => {
+      const highlight50 = activePool === "50m" ? " class=\"active\"" : "";
+      const highlight25 = activePool === "25m" ? " class=\"active\"" : "";
+      return `<tr>
+        <td class="code">${r.code || ""}</td>
+        <td class="desc">${r.label || ""}</td>
+        <td class="unit">${r.unit || ""}</td>
+        <td${highlight50}>${fmtPrice(r.p50)}</td>
+        <td${highlight25}>${fmtPrice(r.p25)}</td>
+      </tr>`;
+    }).join("");
+    const note = sec.note ? `<p class="section-note muted">${sec.note}</p>` : "";
+    return `
+      <div class="pricing-section">
+        <h4>${sec.title}</h4>
+        <div class="price-table-wrap">
+          <table class="price-table">
+            <thead>
+              <tr>
+                <th>Kód</th>
+                <th>Popis</th>
+                <th>Jednotka</th>
+                <th class="${activePool === "50m" ? "active" : ""}">50 m bazén</th>
+                <th class="${activePool === "25m" ? "active" : ""}">25 m bazén</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+        ${note}
+      </div>
+    `;
+  }).join("");
+
+  const parts = [];
+  if (state.pricing.effectiveFrom) parts.push(`Platnosť od: ${state.pricing.effectiveFrom}.`);
+  if (state.pricing.issuedBy) parts.push(state.pricing.issuedBy);
+  if (state.pricing.updated) parts.push(`Posledná aktualizácia: ${state.pricing.updated}.`);
+  foot.innerHTML = parts.join(" · ");
 }
 
 load().catch(err => {
