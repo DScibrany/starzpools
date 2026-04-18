@@ -3,28 +3,70 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>STARZ Pasienky 25 m — voľné dráhy</title>
+  <title>STARZ Pasienky — voľné dráhy</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header>
-    <h1>Mestská plaváreň Pasienky <span class="muted">25 m</span></h1>
-    <div class="meta">
-      <span id="now"></span>
-      <span id="status-pill" class="pill"></span>
-      <a href="https://bratislava.sk/vzdelavanie-a-volny-cas/starz/prevadzky-sportoviska/mestska-plavaren-pasienky-25m" target="_blank" rel="noopener">Zdroj: STARZ</a>
+    <div class="title">
+      <h1>Mestská plaváreň Pasienky</h1>
+      <div class="meta">
+        <span id="now"></span>
+        <span id="status-pill" class="pill"></span>
+      </div>
     </div>
+    <nav class="links" aria-label="Externé odkazy">
+      <a id="link-pool" href="#" target="_blank" rel="noopener">Stránka bazéna ↗</a>
+      <a id="link-source" href="#" target="_blank" rel="noopener">Zdroj dát ↗</a>
+      <a id="link-pricing" href="#" target="_blank" rel="noopener">Cenník (PDF) ↗</a>
+    </nav>
   </header>
+
+  <nav class="pools" id="pool-tabs" role="tablist" aria-label="Výber bazéna">
+    <button class="pool-tab active" data-pool="25m" role="tab" aria-selected="true">25 m bazén</button>
+    <button class="pool-tab" data-pool="50m" role="tab" aria-selected="false">50 m bazén</button>
+  </nav>
 
   <main>
     <section class="hero">
-      <div class="card">
+      <div class="card now-card" id="now-card">
         <h3>Práve teraz</h3>
         <div class="big" id="now-big">—</div>
         <div class="sub" id="now-sub"></div>
-        <div class="next muted" id="now-next"></div>
+        <div class="next" id="now-next"></div>
       </div>
       <div class="card" id="today-blocks"></div>
+    </section>
+
+    <section class="finder" aria-label="Vyhľadávač voľných blokov">
+      <h2 class="section-title">Nájdite si čas</h2>
+      <div class="finder-row">
+        <label>Od
+          <input type="time" id="finder-from" step="900" />
+        </label>
+        <label>Min. voľných dráh
+          <select id="finder-min">
+            <option value="1">aspoň 1</option>
+            <option value="2">aspoň 2</option>
+            <option value="3">aspoň 3</option>
+            <option value="4">aspoň 4</option>
+          </select>
+        </label>
+        <label>Dĺžka
+          <select id="finder-len">
+            <option value="30">30 min</option>
+            <option value="45">45 min</option>
+            <option value="60" selected>60 min</option>
+            <option value="90">90 min</option>
+            <option value="120">120 min</option>
+          </select>
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="finder-today" /> Iba dnes
+        </label>
+        <button id="finder-run" type="button">Vyhľadať</button>
+      </div>
+      <div id="finder-results" class="finder-results"></div>
     </section>
 
     <h2 class="section-title">Dostupnosť po 15 minútach (14 dní)</h2>
@@ -38,13 +80,22 @@
       <span><i class="sw lane-1"></i> 1</span>
       <span><i class="sw lane-2"></i> 2</span>
       <span><i class="sw lane-3"></i> 3</span>
-      <span><i class="sw lane-4"></i> 4</span>
+      <span><i class="sw lane-4"></i> 4+</span>
       <span><i class="sw now"></i> práve teraz</span>
     </div>
+
+    <section class="pricing" id="pricing">
+      <h2 class="section-title">Cenník</h2>
+      <div id="pricing-body" class="pricing-body"></div>
+      <p class="muted pricing-foot">
+        Ceny sú orientačné. Kompletný a aktuálny cenník nájdete v oficiálnom PDF.
+      </p>
+    </section>
   </main>
 
   <footer>
-    Rozvrh z tabuľky STARZ (aktualizuje sa denne). Uložené lokálne v <code>schedule.json</code>.
+    Rozvrh zo zdrojových tabuliek STARZ (aktualizuje sa denne). Lokálne v
+    <code>schedule.json</code> (25 m) a <code>schedule-50m.json</code> (50 m).
     <span id="updated"></span>
   </footer>
 

@@ -1,0 +1,32 @@
+{
+  "source": "https://bratislavask.s3.bratislava.sk/upload/2025_Mestska_Plavaren_Pasienky_Cennik46_9a43ab7401.pdf",
+  "updated": "2026-04-18",
+  "note": "Šablóna — hodnoty doplňte podľa aktuálneho cenníka STARZ (PDF).",
+  "currency": "€",
+  "sections": [
+    {
+      "title": "Vstupné — verejnosť",
+      "items": [
+        { "label": "Dospelí (1 vstup / 60 min)", "price": "" },
+        { "label": "Deti, študenti, seniori (1 vstup / 60 min)", "price": "" },
+        { "label": "Rodinné vstupné", "price": "" }
+      ]
+    },
+    {
+      "title": "Permanentky",
+      "items": [
+        { "label": "10 vstupov — dospelí", "price": "" },
+        { "label": "10 vstupov — deti/študenti/seniori", "price": "" }
+      ]
+    },
+    {
+      "title": "Prenájom dráhy",
+      "items": [
+        { "label": "25 m dráha / 60 min", "price": "" },
+        { "label": "50 m dráha / 60 min", "price": "" },
+        { "label": "Celý bazén 25 m / 60 min", "price": "" },
+        { "label": "Celý bazén 50 m / 60 min", "price": "" }
+      ]
+    }
+  ]
+}

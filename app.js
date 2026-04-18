@@ -2,6 +2,11 @@ const WEEKDAY_SHORT = {
   pondelok: "Po", utorok: "Ut", streda: "St", "štvrtok": "Št",
   piatok: "Pi", sobota: "So", "nedeľa": "Ne",
 };
+const POOL_PAGE = {
+  "25m": "https://bratislava.sk/vzdelavanie-a-volny-cas/starz/prevadzky-sportoviska/mestska-plavaren-pasienky-25m",
+  "50m": "https://bratislava.sk/vzdelavanie-a-volny-cas/starz/prevadzky-sportoviska/mestska-plavaren-pasienky-50m",
+};
+const POOL_FILE = { "25m": "schedule.json", "50m": "schedule-50m.json" };
 
 const toMin = (hhmm) => {
   const [h, m] = hhmm.split(":").map(Number);
@@ -16,30 +21,84 @@ const pad = (n) => String(n).padStart(2, "0");
 const todayISO = (d = new Date()) =>
   `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-let data = null;
+const state = {
+  pool: "25m",
+  data: { "25m": null, "50m": null },
+  pricing: null,
+  finderHits: [],
+};
+
+async function fetchJSON(path) {
+  const res = await fetch(path, { cache: "no-store" });
+  if (!res.ok) throw new Error(`${path}: ${res.status}`);
+  return res.json();
+}
 
 async function load() {
-  const res = await fetch("schedule.json", { cache: "no-store" });
-  data = await res.json();
-  document.getElementById("updated").textContent =
-    data.updated ? `Posledná aktualizácia: ${data.updated}.` : "";
+  const [d25, d50, pricing] = await Promise.all([
+    fetchJSON(POOL_FILE["25m"]).catch(() => null),
+    fetchJSON(POOL_FILE["50m"]).catch(() => null),
+    fetchJSON("pricing.json").catch(() => null),
+  ]);
+  state.data["25m"] = d25;
+  state.data["50m"] = d50;
+  state.pricing = pricing;
+
+  setupTabs();
+  setupFinder();
+  setupLinks();
+  renderPricing();
   render();
   setInterval(render, 30_000);
 }
 
-function slotIndexForNow() {
+function activeData() { return state.data[state.pool]; }
+
+function setupTabs() {
+  const tabs = document.querySelectorAll(".pool-tab");
+  tabs.forEach(t => {
+    t.addEventListener("click", () => {
+      state.pool = t.dataset.pool;
+      tabs.forEach(x => {
+        const active = x.dataset.pool === state.pool;
+        x.classList.toggle("active", active);
+        x.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      setupLinks();
+      state.finderHits = [];
+      document.getElementById("finder-results").innerHTML = "";
+      render();
+    });
+  });
+}
+
+function setupLinks() {
+  document.getElementById("link-pool").href = POOL_PAGE[state.pool];
+  document.getElementById("link-pool").textContent =
+    state.pool === "25m" ? "Stránka 25 m ↗" : "Stránka 50 m ↗";
+  const d = activeData();
+  document.getElementById("link-source").href = d?.source || POOL_PAGE[state.pool];
+  const priceUrl = state.pricing?.source;
+  const priceLink = document.getElementById("link-pricing");
+  if (priceUrl) {
+    priceLink.href = priceUrl;
+    priceLink.style.display = "";
+  } else {
+    priceLink.style.display = "none";
+  }
+}
+
+function slotIndexForNow(data) {
   const now = new Date();
   const min = now.getHours() * 60 + now.getMinutes();
   const start = toMin(data.dayStart);
   if (min < start) return -1;
-  const idx = Math.floor((min - start) / data.slotMinutes);
   const cols = Math.ceil((toMin(data.dayEnd) - start) / data.slotMinutes);
+  const idx = Math.floor((min - start) / data.slotMinutes);
   return idx >= cols ? cols : idx;
 }
 
-function findDay(iso) {
-  return data.days.find(d => d.date === iso);
-}
+function findDay(data, iso) { return data.days.find(d => d.date === iso); }
 
 function collapseBlocks(free, slotMinutes, startMin) {
   const blocks = [];
@@ -59,50 +118,79 @@ function collapseBlocks(free, slotMinutes, startMin) {
 }
 
 function render() {
+  const data = activeData();
   const now = new Date();
   document.getElementById("now").textContent =
     now.toLocaleString("sk-SK", {
       weekday: "short", day: "2-digit", month: "2-digit",
       hour: "2-digit", minute: "2-digit",
     });
+  document.getElementById("updated").textContent =
+    data?.updated ? `Posledná aktualizácia: ${data.updated}.` : "";
 
-  renderNow(now);
-  renderHeatmap(now);
-  renderTodayBlocks(now);
+  if (!data || !data.days || data.days.length === 0) {
+    renderEmpty();
+    return;
+  }
+  renderNow(now, data);
+  renderHeatmap(now, data);
+  renderTodayBlocks(now, data);
+  applyFinderHighlight();
 }
 
-function renderNow(now) {
+function renderEmpty() {
+  const big = document.getElementById("now-big");
+  const sub = document.getElementById("now-sub");
+  const next = document.getElementById("now-next");
+  const pill = document.getElementById("status-pill");
+  const card = document.getElementById("now-card");
+  card.classList.remove("live");
+  pill.textContent = "Bez dát";
+  pill.className = "pill";
+  big.textContent = "—";
+  sub.textContent = "Pre tento bazén ešte nie sú v repozitári žiadne údaje.";
+  next.textContent = "Doplňte hodnoty do zodpovedajúceho schedule súboru.";
+  document.getElementById("today-blocks").innerHTML =
+    `<div class="empty-state">Nie sú k dispozícii dáta pre ${state.pool} bazén.<br>Upravte <code>${POOL_FILE[state.pool]}</code>.</div>`;
+  document.getElementById("grid").innerHTML = "";
+}
+
+function renderNow(now, data) {
   const iso = todayISO(now);
-  const day = findDay(iso);
+  const day = findDay(data, iso);
   const pill = document.getElementById("status-pill");
   const big = document.getElementById("now-big");
   const sub = document.getElementById("now-sub");
   const next = document.getElementById("now-next");
+  const card = document.getElementById("now-card");
 
   if (!day) {
+    card.classList.remove("live");
     pill.textContent = "Mimo rozvrhu";
     pill.className = "pill";
     big.textContent = "—";
-    sub.textContent = "Pre tento dátum nie je v rozvrhu záznam.";
+    sub.textContent = "Pre dnešný dátum nie je v rozvrhu záznam.";
     next.textContent = "";
     return;
   }
 
-  const idx = slotIndexForNow();
+  const idx = slotIndexForNow(data);
   const startMin = toMin(data.dayStart);
   const slot = data.slotMinutes;
   const currentFree = (idx >= 0 && idx < day.free.length) ? day.free[idx] : 0;
 
-  big.textContent = `${currentFree} / ${data.maxLanes}`;
+  big.innerHTML = `${currentFree}<span class="of"> / ${data.maxLanes}</span>`;
   if (currentFree > 0) {
     pill.textContent = "Otvorené pre verejnosť";
     pill.className = "pill open";
+    card.classList.add("live");
     const slotStart = startMin + idx * slot;
-    sub.textContent = `voľných dráh · blok ${fmt(slotStart)}–${fmt(slotStart + slot)}`;
+    sub.textContent = `voľných dráh · prebiehajúci blok ${fmt(slotStart)}–${fmt(slotStart + slot)}`;
   } else {
     pill.textContent = "Mimo verejnej prevádzky";
     pill.className = "pill closed";
-    sub.textContent = "žiadne dráhy pre verejnosť";
+    card.classList.remove("live");
+    sub.textContent = "pre verejnosť práve nie sú k dispozícii dráhy";
   }
 
   let nextIdx = -1;
@@ -116,7 +204,8 @@ function renderNow(now) {
     let endIdx = idx;
     while (endIdx + 1 < day.free.length && day.free[endIdx + 1] === currentFree) endIdx++;
     const endMin = startMin + (endIdx + 1) * slot;
-    next.textContent = `Blok končí o ${fmt(endMin)}.`;
+    const mins = endMin - (now.getHours() * 60 + now.getMinutes());
+    next.textContent = `Blok končí o ${fmt(endMin)} (o ${mins} min).`;
   } else if (nextIdx >= 0) {
     const t = startMin + nextIdx * slot;
     const mins = t - (now.getHours() * 60 + now.getMinutes());
@@ -126,13 +215,13 @@ function renderNow(now) {
   }
 }
 
-function renderHeatmap(now) {
+function renderHeatmap(now, data) {
   const slot = data.slotMinutes;
   const startMin = toMin(data.dayStart);
   const endMin = toMin(data.dayEnd);
   const cols = Math.ceil((endMin - startMin) / slot);
   const todayIso = todayISO(now);
-  const nowIdx = slotIndexForNow();
+  const nowIdx = slotIndexForNow(data);
 
   const grid = document.getElementById("grid");
   grid.style.gridTemplateColumns = `110px repeat(${cols}, minmax(10px, 1fr))`;
@@ -146,6 +235,7 @@ function renderHeatmap(now) {
     const t = startMin + c * slot;
     const el = document.createElement("div");
     el.className = "cell header tick";
+    if (c === nowIdx) el.classList.add("now-col");
     if (t % 60 === 0) {
       el.textContent = String(Math.floor(t / 60));
       el.classList.add("hour");
@@ -157,30 +247,68 @@ function renderHeatmap(now) {
     const isToday = day.date === todayIso;
     const head = document.createElement("div");
     head.className = "cell rowhead" + (isToday ? " today" : "");
-    const [y, m, d] = day.date.split("-");
+    const [, m, d] = day.date.split("-");
     head.innerHTML = `<span class="dow">${WEEKDAY_SHORT[day.weekday] || day.weekday}</span> <span class="date">${d}.${m}.</span>`;
     grid.appendChild(head);
 
     for (let c = 0; c < cols; c++) {
-      const v = day.free[c] ?? 0;
+      const raw = day.free[c] ?? 0;
+      const level = levelFor(raw, data.maxLanes);
       const el = document.createElement("div");
-      el.className = `cell lane-${v}`;
+      el.className = `cell lane-${level}`;
+      if (raw > 0) el.dataset.free = String(raw);
       if (isToday && c === nowIdx) el.classList.add("now");
       const s = startMin + c * slot;
-      el.title = `${day.weekday} ${d}.${m}. · ${fmt(s)}–${fmt(s + slot)} · ${v === 0 ? "—" : v + " dráh"}`;
+      el.title = `${day.weekday} ${d}.${m}. · ${fmt(s)}–${fmt(s + slot)} · ${raw === 0 ? "—" : raw + " / " + data.maxLanes + " dráh"}`;
+      el.dataset.date = day.date;
+      el.dataset.col = String(c);
       grid.appendChild(el);
     }
   }
+
+  renderLegend(data.maxLanes);
 }
 
-function renderTodayBlocks(now) {
+function levelFor(raw, max) {
+  if (raw <= 0) return 0;
+  const r = raw / max;
+  if (r <= 0.25) return 1;
+  if (r <= 0.5) return 2;
+  if (r <= 0.75) return 3;
+  return 4;
+}
+
+function renderLegend(max) {
+  const legend = document.querySelector(".legend");
+  if (!legend) return;
+  const q = (n) => Math.max(1, Math.round(max * n));
+  const range = (lo, hi) => lo === hi ? String(lo) : `${lo}–${hi}`;
+  const r1Hi = q(0.25);
+  const r2Lo = r1Hi + 1, r2Hi = q(0.5);
+  const r3Lo = r2Hi + 1, r3Hi = q(0.75);
+  const r4Lo = r3Hi + 1, r4Hi = max;
+  legend.innerHTML = `
+    <span>voľných dráh (z ${max}):</span>
+    <span><i class="sw lane-0"></i> 0 (mimo verejnosti)</span>
+    <span><i class="sw lane-1"></i> ${range(1, r1Hi)}</span>
+    ${r2Lo <= r2Hi ? `<span><i class="sw lane-2"></i> ${range(r2Lo, r2Hi)}</span>` : ""}
+    ${r3Lo <= r3Hi ? `<span><i class="sw lane-3"></i> ${range(r3Lo, r3Hi)}</span>` : ""}
+    ${r4Lo <= r4Hi ? `<span><i class="sw lane-4"></i> ${range(r4Lo, r4Hi)}</span>` : ""}
+    <span><i class="sw now"></i> práve teraz</span>
+  `;
+}
+
+function renderTodayBlocks(now, data) {
   const iso = todayISO(now);
-  const day = findDay(iso);
+  const day = findDay(data, iso);
   const box = document.getElementById("today-blocks");
-  if (!day) { box.innerHTML = ""; return; }
+  if (!day) {
+    box.innerHTML = `<h3>Dnes</h3><div class="muted">Pre dnešok nie je záznam.</div>`;
+    return;
+  }
   const blocks = collapseBlocks(day.free, data.slotMinutes, toMin(data.dayStart));
   const nowMin = now.getHours() * 60 + now.getMinutes();
-  const [y, m, d] = day.date.split("-");
+  const [, m, d] = day.date.split("-");
   if (!blocks.length) {
     box.innerHTML = `<h3>Dnes (${d}.${m}.)</h3><div class="muted">Žiadne verejné bloky.</div>`;
     return;
@@ -199,6 +327,136 @@ function renderTodayBlocks(now) {
       }).join("")}
     </ul>
   `;
+}
+
+function setupFinder() {
+  const now = new Date();
+  const nowRounded = Math.ceil((now.getHours() * 60 + now.getMinutes()) / 15) * 15;
+  document.getElementById("finder-from").value = fmt(nowRounded);
+  document.getElementById("finder-run").addEventListener("click", runFinder);
+  ["finder-from","finder-min","finder-len","finder-today"].forEach(id => {
+    document.getElementById(id).addEventListener("change", runFinder);
+  });
+}
+
+function runFinder() {
+  const data = activeData();
+  const box = document.getElementById("finder-results");
+  if (!data || !data.days || !data.days.length) {
+    box.innerHTML = `<div class="empty">Pre ${state.pool} bazén nie sú dostupné žiadne dáta.</div>`;
+    state.finderHits = [];
+    applyFinderHighlight();
+    return;
+  }
+  const fromMin = toMin(document.getElementById("finder-from").value || "00:00");
+  const minLanes = Number(document.getElementById("finder-min").value);
+  const lenMin = Number(document.getElementById("finder-len").value);
+  const onlyToday = document.getElementById("finder-today").checked;
+  const slot = data.slotMinutes;
+  const startMin = toMin(data.dayStart);
+  const need = Math.ceil(lenMin / slot);
+  const todayIso = todayISO();
+
+  const nowMinToday = new Date().getHours() * 60 + new Date().getMinutes();
+  const hits = [];
+  for (const day of data.days) {
+    if (onlyToday && day.date !== todayIso) continue;
+    const isToday = day.date === todayIso;
+    let i = 0;
+    while (i < day.free.length) {
+      if (day.free[i] < minLanes) { i++; continue; }
+      let j = i;
+      let minLanesInBlock = day.free[i];
+      while (j < day.free.length && day.free[j] >= minLanes) {
+        minLanesInBlock = Math.min(minLanesInBlock, day.free[j]);
+        j++;
+      }
+      const blockStart = startMin + i * slot;
+      const blockEnd = startMin + j * slot;
+      const lowerBound = Math.max(fromMin, isToday ? nowMinToday : 0);
+      const adjStart = Math.max(blockStart, Math.ceil((lowerBound - startMin) / slot) * slot + startMin);
+      if (adjStart >= blockEnd) { i = j; continue; }
+      if (blockEnd - adjStart >= lenMin) {
+        hits.push({
+          date: day.date, weekday: day.weekday,
+          startCol: Math.floor((adjStart - startMin) / slot),
+          endCol: j,
+          startMin: adjStart, endMin: blockEnd,
+          lanes: minLanesInBlock,
+        });
+      }
+      i = j;
+    }
+  }
+
+  state.finderHits = hits;
+  renderFinderResults(hits);
+  applyFinderHighlight();
+}
+
+function renderFinderResults(hits) {
+  const box = document.getElementById("finder-results");
+  if (!hits.length) {
+    box.innerHTML = `<div class="empty">Nenašli sa žiadne zhodné bloky. Skúste iný čas alebo menej dráh.</div>`;
+    return;
+  }
+  const parts = [`<div class="group">Nájdené okná: ${hits.length}</div>`];
+  for (const h of hits) {
+    const [, m, d] = h.date.split("-");
+    const lenH = Math.floor((h.endMin - h.startMin) / 60);
+    const lenM = (h.endMin - h.startMin) % 60;
+    const lenStr = lenH ? `${lenH} h${lenM ? " " + lenM + " min" : ""}` : `${lenM} min`;
+    parts.push(`<div class="hit">
+      <span class="d">${WEEKDAY_SHORT[h.weekday] || h.weekday} ${d}.${m}.</span>
+      <span class="t">${fmt(h.startMin)}–${fmt(h.endMin)}</span>
+      <span class="len muted">${lenStr}</span>
+      <span class="l">≥${h.lanes} ${h.lanes === 1 ? "dráha" : "dráhy"}</span>
+    </div>`);
+  }
+  box.innerHTML = parts.join("");
+}
+
+function applyFinderHighlight() {
+  document.querySelectorAll("#grid .cell.match").forEach(el => el.classList.remove("match"));
+  if (!state.finderHits.length) return;
+  const cells = document.querySelectorAll("#grid .cell[data-date]");
+  const map = new Map();
+  cells.forEach(el => {
+    const k = `${el.dataset.date}:${el.dataset.col}`;
+    map.set(k, el);
+  });
+  for (const h of state.finderHits) {
+    for (let c = h.startCol; c < h.endCol; c++) {
+      const el = map.get(`${h.date}:${c}`);
+      if (el) el.classList.add("match");
+    }
+  }
+}
+
+function renderPricing() {
+  const body = document.getElementById("pricing-body");
+  const foot = document.querySelector(".pricing-foot");
+  if (!state.pricing || !state.pricing.sections) {
+    body.innerHTML = `<div class="empty-state">Cenník nie je k dispozícii. Pridajte hodnoty do <code>pricing.json</code>.</div>`;
+    return;
+  }
+  const cur = state.pricing.currency || "€";
+  body.innerHTML = state.pricing.sections.map(sec => `
+    <div class="pricing-section">
+      <h4>${sec.title}</h4>
+      <ul>
+        ${sec.items.map(it => `
+          <li>
+            <span class="label">${it.label}</span>
+            <span class="price ${it.price ? "" : "empty"}">${it.price ? `${it.price} ${cur}`.replace(`${cur} ${cur}`, cur) : ""}</span>
+          </li>
+        `).join("")}
+      </ul>
+    </div>
+  `).join("");
+  if (state.pricing.updated) {
+    foot.textContent = `Zdroj: oficiálny cenník STARZ (PDF). Posledná aktualizácia údajov: ${state.pricing.updated}.`;
+  }
 }
 
 load().catch(err => {
