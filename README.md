@@ -101,6 +101,17 @@ python3 -m http.server 8000
 # otvorte http://localhost:8000
 ```
 
+## Nasadenie (GitHub Pages)
+
+Repozitár má pripravený workflow
+`.github/workflows/pages.yml`, ktorý po každom pushi do `main` nasadí
+obsah repozitára na GitHub Pages. Stačí v repo **Settings → Pages**
+zvoliť **Source: GitHub Actions** — ďalšie nastavenia netreba.
+
+Výsledná URL má tvar `https://<user>.github.io/starzpools/`. Denný
+workflow `update-data.yml` commituje čerstvé JSON-y do `main`,
+čo automaticky spustí redeployment.
+
 ## Súbory
 
 | Súbor | Obsah |
