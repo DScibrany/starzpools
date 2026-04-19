@@ -13,6 +13,18 @@ Zdroje:
 
 ![25 m bazén — dashboard](docs/screenshot-25m.png)
 
+### Farebné témy heatmapy
+
+Téma sa prepína vpravo nad heatmapou a ukladá sa do `localStorage`.
+
+| Viridis (predvolená) | Modrá (monochromatická) |
+|---|---|
+| ![Viridis](docs/screenshot-theme-viridis.png) | ![Modrá](docs/screenshot-theme-blues.png) |
+
+| Semafor | Rozhranie 50 % |
+|---|---|
+| ![Semafor](docs/screenshot-theme-traffic.png) | ![Rozhranie 50 %](docs/screenshot-theme-diverging.png) |
+
 <details>
 <summary>50 m bazén</summary>
 
@@ -24,6 +36,13 @@ Zdroje:
 <summary>Vyhľadávač („Nájdite si čas“)</summary>
 
 ![Vyhľadávač voľných blokov](docs/screenshot-finder.png)
+
+</details>
+
+<details>
+<summary>Cenník</summary>
+
+![Cenník](docs/screenshot-pricing.png)
 
 </details>
 
