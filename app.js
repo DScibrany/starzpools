@@ -577,6 +577,7 @@ function runFinder() {
   const nowMinToday = new Date().getHours() * 60 + new Date().getMinutes();
   const hits = [];
   for (const day of data.days) {
+    if (day.date < todayIso) continue;
     if (onlyToday && day.date !== todayIso) continue;
     const isToday = day.date === todayIso;
     let i = 0;
