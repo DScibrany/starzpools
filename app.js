@@ -23,7 +23,7 @@ const todayISO = (d = new Date()) =>
 
 const THEMES = ["viridis", "blues", "traffic", "diverging"];
 const state = {
-  pool: "25m",
+  pool: "50m",
   view: "dashboard",
   theme: "viridis",
   data: { "25m": null, "50m": null },
