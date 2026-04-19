@@ -46,8 +46,11 @@
         <div class="card" id="today-blocks"></div>
       </section>
 
-      <section class="finder" aria-label="Vyhľadávač voľných blokov">
-        <h2 class="section-title">Nájdite si čas</h2>
+      <details class="finder" aria-label="Vyhľadávač voľných blokov">
+        <summary>
+          <span class="section-title">Nájdite si čas</span>
+          <span class="finder-hint">kliknite pre vyhľadávanie voľných blokov</span>
+        </summary>
         <div class="finder-row">
           <label>Od
             <input type="time" id="finder-from" step="900" />
@@ -72,7 +75,7 @@
           <button id="finder-run" type="button">Vyhľadať</button>
         </div>
         <div id="finder-results" class="finder-results"></div>
-      </section>
+      </details>
 
       <div class="grid-header">
         <h2 class="section-title">Dostupnosť po 15 minútach (14 dní)</h2>

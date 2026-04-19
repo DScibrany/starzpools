@@ -236,6 +236,9 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
 .now-prices .np .np-old { color: #64748b; text-decoration: line-through; font-size: 11px; font-weight: 400; margin-right: 4px; }
 .now-prices .np.muted .np-val { color: var(--muted); font-weight: 500; font-size: 13px; }
 .now-prices .np-note { font-size: 11px; color: var(--muted); align-self: center; }
+.now-prices .np.stale { border-color: rgba(245, 158, 11, 0.55); background: rgba(245, 158, 11, 0.08); }
+.now-prices .np.stale .np-val { color: #fcd34d; }
+.now-prices .np-stale { color: #fbbf24; margin-left: 4px; cursor: help; }
 .now-card .big {
   font-size: 64px;
   font-weight: 800;
@@ -310,10 +313,42 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 14px 16px 16px;
+  padding: 0;
   margin-bottom: 8px;
+  overflow: hidden;
 }
-.finder .section-title { margin: 0 0 10px; }
+.finder > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+  position: relative;
+}
+.finder > summary::-webkit-details-marker { display: none; }
+.finder > summary::before {
+  content: "▸";
+  color: var(--muted);
+  font-size: 12px;
+  transition: transform 0.15s ease;
+  display: inline-block;
+  width: 12px;
+}
+.finder[open] > summary::before { transform: rotate(90deg); }
+.finder > summary .section-title { margin: 0; }
+.finder > summary:hover .section-title { color: var(--text); }
+.finder .finder-hint {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+  margin-left: auto;
+}
+.finder[open] .finder-hint { display: none; }
+.finder[open] > .finder-row { padding: 4px 16px 0; }
+.finder[open] > .finder-results { padding: 0 16px 16px; }
+.finder[open] > summary { padding-bottom: 4px; border-bottom: 1px dashed var(--line); }
 .finder-row {
   display: flex;
   gap: 12px;
@@ -378,6 +413,9 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
 .finder-results .hit .price-chip .pc-price { color: var(--accent); font-weight: 700; }
 .finder-results .hit .price-chip .pc-old { color: #64748b; text-decoration: line-through; font-size: 11px; margin-right: 2px; }
 .finder-results .hit .price-chip.muted .pc-price { color: var(--muted); font-weight: 500; }
+.finder-results .hit .price-chip.stale { border-color: rgba(245, 158, 11, 0.55); background: rgba(245, 158, 11, 0.08); }
+.finder-results .hit .price-chip.stale .pc-price { color: #fcd34d; }
+.finder-results .hit .price-chip .pc-stale { color: #fbbf24; margin-right: 3px; }
 .finder-results .empty { color: var(--muted); font-size: 13px; padding: 8px 2px; }
 
 .grid-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); position: relative; }
@@ -466,6 +504,7 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
   gap: 10px;
   flex-wrap: wrap;
 }
+.pricing-stale[hidden] { display: none; }
 .pricing-stale strong { color: #fde68a; }
 .pricing-stale a { color: #fcd34d; text-decoration: underline; }
 .pricing-stale a:hover { color: #fff7ed; }
@@ -522,6 +561,7 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
 }
 .price-table .new { color: var(--text); font-weight: 700; }
 .price-table td.active .new { color: var(--accent); }
+.price-table .cell-stale { color: #fbbf24; margin-left: 4px; cursor: help; font-size: 12px; }
 
 .pricing-section .section-note { margin: 8px 0 0; font-size: 12px; }
 .pricing-foot { margin: 12px 0 0; font-size: 12px; }

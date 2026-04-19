@@ -195,8 +195,15 @@ function renderBandChip(el, band) {
   el.textContent = bandLabel(band);
 }
 
+function isPricingStale() {
+  return state.pricing?.status?.upToDate === false;
+}
+
+const STALE_TITLE = "Cenník môže byť neaktuálny — overte na stránke bazéna.";
+
 function renderNowPrices(box, band) {
   if (!box) return;
+  box.classList.toggle("stale", isPricingStale());
   if (!state.pricing || band === "outside") {
     const msg = band === "outside"
       ? (state.pricing?.bandLabels?.outside || "mimo predaja vstupeniek")
@@ -204,6 +211,8 @@ function renderNowPrices(box, band) {
     box.innerHTML = msg ? `<span class="np-note">${msg}</span>` : "";
     return;
   }
+  const stale = isPricingStale();
+  const staleMark = stale ? `<span class="np-stale" title="${STALE_TITLE}">⚠</span>` : "";
   const durations = [60, 90];
   const items = [];
   for (const dur of durations) {
@@ -211,8 +220,8 @@ function renderNowPrices(box, band) {
     const reduced = priceFor(state.pool, band, "reduced", dur);
     if (!adult && !reduced) continue;
     items.push(`
-      <div class="np">
-        <span class="np-lbl">${dur} min</span>
+      <div class="np${stale ? " stale" : ""}">
+        <span class="np-lbl">${dur} min ${staleMark}</span>
         <span class="np-val">${adult?.old ? `<span class="np-old">${priceWithCurrency(adult.old)}</span>` : ""}${priceWithCurrency(adult?.value || "—")}</span>
         ${reduced ? `<span class="np-lbl" title="zľavnené (ŤZP, do 18 r.)">zľavnené${reduced.old ? ` <span class="np-old">${priceWithCurrency(reduced.old)}</span>` : ""} ${priceWithCurrency(reduced.value)}</span>` : ""}
       </div>
@@ -229,7 +238,10 @@ function priceChipHTML(pool, band, duration) {
   if (!p) return "";
   const label = band === "peak" ? "špička" : band === "offpeak" ? "mimo šp." : band;
   const oldHtml = p.old ? `<span class="pc-old">${priceWithCurrency(p.old)}</span>` : "";
-  return `<span class="price-chip"><span class="pc-band">${label} · ${duration}m</span><span class="pc-price">${oldHtml}${priceWithCurrency(p.value || "—")}</span></span>`;
+  const stale = isPricingStale();
+  const staleCls = stale ? " stale" : "";
+  const staleMark = stale ? `<span class="pc-stale" title="${STALE_TITLE}">⚠</span>` : "";
+  return `<span class="price-chip${staleCls}" ${stale ? `title="${STALE_TITLE}"` : ""}><span class="pc-band">${label} · ${duration}m</span><span class="pc-price">${staleMark}${oldHtml}${priceWithCurrency(p.value || "—")}</span></span>`;
 }
 
 function activeData() { return state.data[state.pool]; }
@@ -653,6 +665,7 @@ function renderPricing() {
     return;
   }
   const cur = state.pricing.currency || "€";
+  const stale = isPricingStale();
   const withUnit = (v) => {
     if (v === "—" || v.toLowerCase() === "dohodou") return v;
     if (/\d/.test(v) && !v.includes(cur) && !v.includes("%")) return `${v} ${cur}`;
@@ -663,6 +676,7 @@ function renderPricing() {
     const parts = [];
     if (oldVal) parts.push(`<span class="old">${withUnit(oldVal)}</span>`);
     if (newVal) parts.push(`<span class="new">${withUnit(newVal)}</span>`);
+    if (stale) parts.push(`<span class="cell-stale" title="${STALE_TITLE}">⚠</span>`);
     return parts.join(" ");
   };
 

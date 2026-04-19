@@ -53,6 +53,28 @@ Téma sa prepína vpravo nad heatmapou a ukladá sa do `localStorage`.
 
 </details>
 
+<details>
+<summary>Indikácia neaktuálneho cenníka</summary>
+
+Keď sa SHA-256 aktuálneho PDF cenníka na stránke bazéna líši od uloženej
+referenčnej kópie (alebo keď link už nie je dostupný), dashboard:
+
+- zobrazí žltý pruh nad obsahom,
+- označí ⚠ každú cenovku v karte „Práve teraz" a vo výsledkoch vyhľadávača,
+- označí ⚠ každú bunku s cenou v tabuľke cenníka.
+
+![Dashboard s upozornením na neaktuálny cenník](docs/screenshot-stale-dashboard.png)
+
+Vyhľadávač — každý výsledok má žltú cenovku s ⚠:
+
+![Vyhľadávač pri neaktuálnom cenníku](docs/screenshot-stale-finder.png)
+
+Cenník — každá bunka má ⚠:
+
+![Cenník pri neaktuálnom cenníku](docs/screenshot-stale-pricing.png)
+
+</details>
+
 ## Funkcie
 
 - **Prepínač bazénov** 25 m / 50 m.
