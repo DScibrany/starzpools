@@ -21,9 +21,11 @@ const pad = (n) => String(n).padStart(2, "0");
 const todayISO = (d = new Date()) =>
   `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
+const THEMES = ["viridis", "blues", "traffic", "diverging"];
 const state = {
   pool: "25m",
   view: "dashboard",
+  theme: "viridis",
   data: { "25m": null, "50m": null },
   pricing: null,
   finderHits: [],
@@ -47,11 +49,34 @@ async function load() {
 
   setupViews();
   setupTabs();
+  setupTheme();
   setupFinder();
   setupLinks();
   renderPricing();
   render();
   setInterval(render, 30_000);
+}
+
+function applyTheme(name) {
+  if (!THEMES.includes(name)) name = "viridis";
+  state.theme = name;
+  document.body.classList.remove(...THEMES.map(t => "theme-" + t));
+  document.body.classList.add("theme-" + name);
+  try { localStorage.setItem("starz-theme", name); } catch {}
+}
+
+function setupTheme() {
+  let saved = null;
+  try { saved = localStorage.getItem("starz-theme"); } catch {}
+  applyTheme(saved || "viridis");
+  const sel = document.getElementById("theme");
+  if (sel) {
+    sel.value = state.theme;
+    sel.addEventListener("change", () => {
+      applyTheme(sel.value);
+      renderLegend(activeData()?.maxLanes || 4);
+    });
+  }
 }
 
 function setupViews() {
@@ -361,6 +386,10 @@ function renderHeatmap(now, data) {
   const cols = Math.ceil((endMin - startMin) / slot);
   const todayIso = todayISO(now);
   const nowIdx = slotIndexForNow(data);
+  const slotsPerHour = Math.max(1, Math.round(60 / slot));
+  const nowStart = nowIdx;
+  const nowEnd = nowIdx >= 0 ? Math.min(nowIdx + slotsPerHour - 1, cols - 1) : -1;
+  const inNowBand = (c) => nowStart >= 0 && c >= nowStart && c <= nowEnd;
 
   const grid = document.getElementById("grid");
   grid.style.gridTemplateColumns = `110px repeat(${cols}, minmax(10px, 1fr))`;
@@ -374,7 +403,11 @@ function renderHeatmap(now, data) {
     const t = startMin + c * slot;
     const el = document.createElement("div");
     el.className = "cell header tick";
-    if (c === nowIdx) el.classList.add("now-col");
+    if (inNowBand(c)) {
+      el.classList.add("now-col");
+      if (c === nowStart) el.classList.add("now-col-start");
+      if (c === nowEnd) el.classList.add("now-col-end");
+    }
     if (t % 60 === 0) {
       el.textContent = String(Math.floor(t / 60));
       el.classList.add("hour");
@@ -396,7 +429,11 @@ function renderHeatmap(now, data) {
       const el = document.createElement("div");
       el.className = `cell lane-${level}`;
       if (raw > 0) el.dataset.free = String(raw);
-      if (isToday && c === nowIdx) el.classList.add("now");
+      if (isToday && inNowBand(c)) {
+        el.classList.add("now");
+        if (c === nowStart) el.classList.add("now-start");
+        if (c === nowEnd) el.classList.add("now-end");
+      }
       const s = startMin + c * slot;
       el.title = `${day.weekday} ${d}.${m}. · ${fmt(s)}–${fmt(s + slot)} · ${raw === 0 ? "—" : raw + " / " + data.maxLanes + " dráh"}`;
       el.dataset.date = day.date;
@@ -433,7 +470,7 @@ function renderLegend(max) {
     ${r2Lo <= r2Hi ? `<span><i class="sw lane-2"></i> ${range(r2Lo, r2Hi)}</span>` : ""}
     ${r3Lo <= r3Hi ? `<span><i class="sw lane-3"></i> ${range(r3Lo, r3Hi)}</span>` : ""}
     ${r4Lo <= r4Hi ? `<span><i class="sw lane-4"></i> ${range(r4Lo, r4Hi)}</span>` : ""}
-    <span><i class="sw now"></i> práve teraz</span>
+    <span><i class="sw now"></i> aktuálna hodina</span>
   `;
 }
 

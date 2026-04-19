@@ -9,9 +9,28 @@
   --accent-2: #6366f1;
   --now: #f43f5e;
   --lane-0: #1b2744;
-  --lane-1: #14532d;
-  --lane-2: #166534;
-  --lane-3: #16a34a;
+  --lane-1: #31688e;
+  --lane-2: #21918c;
+  --lane-3: #5ec962;
+  --lane-4: #fde725;
+}
+
+body.theme-blues {
+  --lane-1: #1e3a5f;
+  --lane-2: #1e6091;
+  --lane-3: #2e8cc7;
+  --lane-4: #93c5fd;
+}
+body.theme-traffic {
+  --lane-1: #b91c1c;
+  --lane-2: #f59e0b;
+  --lane-3: #84cc16;
+  --lane-4: #22c55e;
+}
+body.theme-diverging {
+  --lane-1: #dc2626;
+  --lane-2: #64748b;
+  --lane-3: #14b8a6;
   --lane-4: #22c55e;
 }
 
@@ -245,6 +264,36 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
   font-weight: 700;
 }
 
+.grid-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.grid-header .section-title { margin: 18px 0 10px; }
+.theme-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.theme-pick select {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  padding: 6px 8px;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: 0;
+  color-scheme: dark;
+}
+
 .finder {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -353,13 +402,17 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
 .cell.lane-3 { background: var(--lane-3); }
 .cell.lane-4 { background: var(--lane-4); }
 .cell.now {
-  outline: 3px solid var(--now);
-  outline-offset: -2px;
+  position: relative;
   z-index: 3;
-  box-shadow: 0 0 0 2px rgba(244, 63, 94, 0.35);
+  box-shadow: inset 0 2px 0 0 var(--now), inset 0 -2px 0 0 var(--now);
 }
-.cell.now-col { box-shadow: inset 0 0 0 1px rgba(244, 63, 94, 0.55); }
+.cell.now.now-start { box-shadow: inset 2px 0 0 0 var(--now), inset 0 2px 0 0 var(--now), inset 0 -2px 0 0 var(--now); }
+.cell.now.now-end   { box-shadow: inset -2px 0 0 0 var(--now), inset 0 2px 0 0 var(--now), inset 0 -2px 0 0 var(--now); }
+.cell.now.now-start.now-end { box-shadow: inset 0 0 0 2px var(--now); }
+.cell.now-col { background: rgba(244, 63, 94, 0.08); }
 .cell.now-col.header { background: #2a0f1a; color: #fecdd3; }
+.cell.now-col.now-col-start { box-shadow: inset 2px 0 0 0 rgba(244,63,94,0.55); }
+.cell.now-col.now-col-end { box-shadow: inset -2px 0 0 0 rgba(244,63,94,0.55); }
 .cell.match { outline: 2px solid var(--accent); outline-offset: -2px; z-index: 2; }
 
 .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 12px; font-size: 12px; color: var(--muted); align-items: center; }
