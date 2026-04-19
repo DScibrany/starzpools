@@ -230,19 +230,24 @@ function setupTabs() {
 }
 
 function setupLinks() {
-  document.getElementById("link-pool").href = POOL_PAGE[state.pool];
-  document.getElementById("link-pool").textContent =
-    state.pool === "25m" ? "Stránka 25 m ↗" : "Stránka 50 m ↗";
   const d = activeData();
-  document.getElementById("link-source").href = d?.source || POOL_PAGE[state.pool];
+  const poolText = state.pool === "25m" ? "Stránka 25 m ↗" : "Stránka 50 m ↗";
+  document.querySelectorAll(".link-pool").forEach(a => {
+    a.href = POOL_PAGE[state.pool];
+    a.textContent = poolText;
+  });
+  document.querySelectorAll(".link-source").forEach(a => {
+    a.href = d?.source || POOL_PAGE[state.pool];
+  });
   const priceUrl = state.pricing?.source;
-  const priceLink = document.getElementById("link-pricing");
-  if (priceUrl) {
-    priceLink.href = priceUrl;
-    priceLink.style.display = "";
-  } else {
-    priceLink.style.display = "none";
-  }
+  document.querySelectorAll(".link-pricing").forEach(a => {
+    if (priceUrl) {
+      a.href = priceUrl;
+      a.style.display = "";
+    } else {
+      a.style.display = "none";
+    }
+  });
 }
 
 function slotIndexForNow(data) {
