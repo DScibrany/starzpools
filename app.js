@@ -667,8 +667,12 @@ function renderPricing() {
   };
 
   if (banner) {
-    banner.textContent = state.pricing.transitional || "";
-    banner.style.display = state.pricing.transitional ? "" : "none";
+    const txt = state.pricing.transitional || "";
+    const until = state.pricing.transitionalUntil;
+    const expired = until && todayISO() > until;
+    const show = txt && !expired;
+    banner.textContent = show ? txt : "";
+    banner.style.display = show ? "" : "none";
   }
   if (priceNote) {
     priceNote.textContent = state.pricing.priceNote || "";
