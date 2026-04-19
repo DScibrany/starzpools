@@ -6,73 +6,284 @@
   "issuedBy": "STARZ — Správa telovýchovných a rekreačných zariadení hl. m. SR Bratislavy",
   "priceNote": "V PDF sú pri niektorých riadkoch dve ceny — prvá (prečiarknutá) je pôvodná, druhá je aktuálne platná. Zobrazujú sa tu obe, platná je zvýraznená. DPH sa účtuje v zmysle platných predpisov.",
   "transitional": "V čase od pondelka 22.12.2025 do nedele 11.01.2026 vrátane platí na 25 m bazéne jednotné vstupné 3,00 € / 90 min za osobu.",
+  "status": {
+    "upToDate": true,
+    "referenceSha256": null,
+    "storedSha256": null,
+    "currentUrl": null,
+    "sourcePage": "https://bratislava.sk/vzdelavanie-a-volny-cas/starz/prevadzky-sportoviska/mestska-plavaren-pasienky-25m",
+    "lastChecked": null
+  },
   "holidays": [],
   "bands": {
-    "peak":    { "workdayOnly": true,  "ranges": [["06:00","09:00"], ["15:00","20:00"]] },
-    "offpeak": { "workdayOnly": false, "ranges": [["09:00","15:00"], ["20:00","22:00"]] }
+    "peak": {
+      "workdayOnly": true,
+      "ranges": [
+        [
+          "06:00",
+          "09:00"
+        ],
+        [
+          "15:00",
+          "20:00"
+        ]
+      ]
+    },
+    "offpeak": {
+      "workdayOnly": false,
+      "ranges": [
+        [
+          "09:00",
+          "15:00"
+        ],
+        [
+          "20:00",
+          "22:00"
+        ]
+      ]
+    }
   },
   "bandLabels": {
-    "peak":    "pracovný deň · špička (6–9 a 15–20)",
+    "peak": "pracovný deň · špička (6–9 a 15–20)",
     "offpeak": "mimo špičky · víkend a sviatok",
     "outside": "mimo predaja vstupeniek"
   },
   "bandCodes": {
-    "peak":    { "adult": { "60": "A3", "90": "A4" }, "reduced": { "60": "B3", "90": "B4" } },
-    "offpeak": { "adult": { "60": "A1", "90": "A2" }, "reduced": { "60": "B1", "90": "B2" } }
+    "peak": {
+      "adult": {
+        "60": "A3",
+        "90": "A4"
+      },
+      "reduced": {
+        "60": "B3",
+        "90": "B4"
+      }
+    },
+    "offpeak": {
+      "adult": {
+        "60": "A1",
+        "90": "A2"
+      },
+      "reduced": {
+        "60": "B1",
+        "90": "B2"
+      }
+    }
   },
   "sections": [
     {
       "title": "A — Individuálne vstupné (fyzická osoba)",
       "rows": [
-        { "code": "A1", "label": "pracovný deň 9:00–15:00 a 20:00–22:00, víkend a sviatok", "unit": "60 min", "p50Old": "9,00", "p50": "4,00", "p25Old": "7,50", "p25": "3,50" },
-        { "code": "A2", "label": "pracovný deň 9:00–15:00 a 20:00–22:00, víkend a sviatok", "unit": "90 min", "p50Old": "13,50", "p50": "6,00", "p25Old": "11,25", "p25": "5,00" },
-        { "code": "A3", "label": "pracovný deň 6:00–9:00 a 15:00–20:00", "unit": "60 min", "p50Old": "9,00", "p50": "6,00", "p25Old": "7,50", "p25": "5,00" },
-        { "code": "A4", "label": "pracovný deň 6:00–9:00 a 15:00–20:00", "unit": "90 min", "p50Old": "13,50", "p50": "8,00", "p25Old": "11,25", "p25": "7,00" },
-        { "code": "A5", "label": "počas vodnopólového zápasu mládeže (plávanie na šírku v 1/3 bazéna, jedna unisex šatňa)", "unit": "90 min", "p50": "2,00", "p25": "—" }
+        {
+          "code": "A1",
+          "label": "pracovný deň 9:00–15:00 a 20:00–22:00, víkend a sviatok",
+          "unit": "60 min",
+          "p50Old": "9,00",
+          "p50": "4,00",
+          "p25Old": "7,50",
+          "p25": "3,50"
+        },
+        {
+          "code": "A2",
+          "label": "pracovný deň 9:00–15:00 a 20:00–22:00, víkend a sviatok",
+          "unit": "90 min",
+          "p50Old": "13,50",
+          "p50": "6,00",
+          "p25Old": "11,25",
+          "p25": "5,00"
+        },
+        {
+          "code": "A3",
+          "label": "pracovný deň 6:00–9:00 a 15:00–20:00",
+          "unit": "60 min",
+          "p50Old": "9,00",
+          "p50": "6,00",
+          "p25Old": "7,50",
+          "p25": "5,00"
+        },
+        {
+          "code": "A4",
+          "label": "pracovný deň 6:00–9:00 a 15:00–20:00",
+          "unit": "90 min",
+          "p50Old": "13,50",
+          "p50": "8,00",
+          "p25Old": "11,25",
+          "p25": "7,00"
+        },
+        {
+          "code": "A5",
+          "label": "počas vodnopólového zápasu mládeže (plávanie na šírku v 1/3 bazéna, jedna unisex šatňa)",
+          "unit": "90 min",
+          "p50": "2,00",
+          "p25": "—"
+        }
       ]
     },
     {
       "title": "B — Individuálne zľavnené vstupné (ŤZP, ŤZP-S, do 18 rokov)",
       "rows": [
-        { "code": "B1", "label": "pracovný deň 9:00–15:00 a 20:00–22:00, víkend a sviatok", "unit": "60 min", "p50Old": "9,00", "p50": "3,50", "p25Old": "7,50", "p25": "3,00" },
-        { "code": "B2", "label": "pracovný deň 9:00–15:00 a 20:00–22:00, víkend a sviatok", "unit": "90 min", "p50Old": "13,50", "p50": "5,00", "p25Old": "11,25", "p25": "4,00" },
-        { "code": "B3", "label": "pracovný deň 6:00–9:00 a 15:00–20:00", "unit": "60 min", "p50Old": "9,00", "p50": "5,00", "p25Old": "7,50", "p25": "4,00" },
-        { "code": "B4", "label": "pracovný deň 6:00–9:00 a 15:00–20:00", "unit": "90 min", "p50Old": "13,50", "p50": "7,00", "p25Old": "11,25", "p25": "6,00" },
-        { "code": "B5", "label": "počas vodnopólového zápasu mládeže (plávanie na šírku v 1/3 bazéna, jedna unisex šatňa)", "unit": "90 min", "p50": "1,00", "p25": "—" }
+        {
+          "code": "B1",
+          "label": "pracovný deň 9:00–15:00 a 20:00–22:00, víkend a sviatok",
+          "unit": "60 min",
+          "p50Old": "9,00",
+          "p50": "3,50",
+          "p25Old": "7,50",
+          "p25": "3,00"
+        },
+        {
+          "code": "B2",
+          "label": "pracovný deň 9:00–15:00 a 20:00–22:00, víkend a sviatok",
+          "unit": "90 min",
+          "p50Old": "13,50",
+          "p50": "5,00",
+          "p25Old": "11,25",
+          "p25": "4,00"
+        },
+        {
+          "code": "B3",
+          "label": "pracovný deň 6:00–9:00 a 15:00–20:00",
+          "unit": "60 min",
+          "p50Old": "9,00",
+          "p50": "5,00",
+          "p25Old": "7,50",
+          "p25": "4,00"
+        },
+        {
+          "code": "B4",
+          "label": "pracovný deň 6:00–9:00 a 15:00–20:00",
+          "unit": "90 min",
+          "p50Old": "13,50",
+          "p50": "7,00",
+          "p25Old": "11,25",
+          "p25": "6,00"
+        },
+        {
+          "code": "B5",
+          "label": "počas vodnopólového zápasu mládeže (plávanie na šírku v 1/3 bazéna, jedna unisex šatňa)",
+          "unit": "90 min",
+          "p50": "1,00",
+          "p25": "—"
+        }
       ]
     },
     {
       "title": "C — Tréning (rezervácia dráh pre členov národného športového zväzu)",
       "rows": [
-        { "code": "C1", "label": "1 dráha — pracovný deň 6:00–9:00 a 15:00–20:00, víkend a sviatok", "unit": "60 min", "p50Old": "60,00", "p50": "40,00", "p25Old": "45,00", "p25": "35,00" },
-        { "code": "C2", "label": "1 dráha — pracovný deň 9:00–15:00 a 20:00–22:00", "unit": "60 min", "p50Old": "60,00", "p50": "30,00", "p25Old": "45,00", "p25": "28,00" },
-        { "code": "C3", "label": "celý bazén (všetky dráhy) — pracovný deň 6:00–9:00 a 15:00–20:00, víkend a sviatok", "unit": "60 min", "p50Old": "8 × 60,00 = 480,00", "p50": "8 × 30,00 = 240,00", "p25Old": "4 × 45,00 = 180,00", "p25": "4 × 28,00 = 112,00" },
-        { "code": "C4", "label": "celý bazén (všetky dráhy) — pracovný deň 9:00–15:00 a 20:00–22:00", "unit": "60 min", "p50Old": "8 × 60,00 = 480,00", "p50": "8 × 22,50 = 180,00", "p25Old": "4 × 45,00 = 180,00", "p25": "4 × 25,00 = 100,00" }
+        {
+          "code": "C1",
+          "label": "1 dráha — pracovný deň 6:00–9:00 a 15:00–20:00, víkend a sviatok",
+          "unit": "60 min",
+          "p50Old": "60,00",
+          "p50": "40,00",
+          "p25Old": "45,00",
+          "p25": "35,00"
+        },
+        {
+          "code": "C2",
+          "label": "1 dráha — pracovný deň 9:00–15:00 a 20:00–22:00",
+          "unit": "60 min",
+          "p50Old": "60,00",
+          "p50": "30,00",
+          "p25Old": "45,00",
+          "p25": "28,00"
+        },
+        {
+          "code": "C3",
+          "label": "celý bazén (všetky dráhy) — pracovný deň 6:00–9:00 a 15:00–20:00, víkend a sviatok",
+          "unit": "60 min",
+          "p50Old": "8 × 60,00 = 480,00",
+          "p50": "8 × 30,00 = 240,00",
+          "p25Old": "4 × 45,00 = 180,00",
+          "p25": "4 × 28,00 = 112,00"
+        },
+        {
+          "code": "C4",
+          "label": "celý bazén (všetky dráhy) — pracovný deň 9:00–15:00 a 20:00–22:00",
+          "unit": "60 min",
+          "p50Old": "8 × 60,00 = 480,00",
+          "p50": "8 × 22,50 = 180,00",
+          "p25Old": "4 × 45,00 = 180,00",
+          "p25": "4 × 25,00 = 100,00"
+        }
       ],
       "note": "Pri rezervácii všetkých 8 dráh je zľava 25 % (2 dráhy zdarma). Platí sa výlučne bezhotovostne na účet STARZ."
     },
     {
       "title": "D — Súťaž",
       "rows": [
-        { "code": "D1", "label": "vodnopólová súťaž SPF — 2/3 bazéna + šatňa + tribúna + respírium (1/3 bazéna + 1 šatňa pre verejnosť)", "unit": "60 min", "p50Old": "480,00", "p50": "180,00", "p25": "—" },
-        { "code": "D3", "label": "iná športová súťaž (celý bazén, tribúna, obidve šatne, rozcvičovňa, respírium)", "unit": "60 min", "p50Old": "480,00", "p50": "250,00", "p25Old": "180,00", "p25": "120,00" },
-        { "code": "D4", "label": "iná športová súťaž — každá začatá hodina nad 12 hodín sa účtuje osobitne", "unit": "12 h", "p50Old": "12 × 480,00 = 5760,00", "p50": "12 × 210,00 = 2520,00", "p25Old": "12 × 180,00 = 2160,00", "p25": "12 × 100,00 = 1200,00" }
+        {
+          "code": "D1",
+          "label": "vodnopólová súťaž SPF — 2/3 bazéna + šatňa + tribúna + respírium (1/3 bazéna + 1 šatňa pre verejnosť)",
+          "unit": "60 min",
+          "p50Old": "480,00",
+          "p50": "180,00",
+          "p25": "—"
+        },
+        {
+          "code": "D3",
+          "label": "iná športová súťaž (celý bazén, tribúna, obidve šatne, rozcvičovňa, respírium)",
+          "unit": "60 min",
+          "p50Old": "480,00",
+          "p50": "250,00",
+          "p25Old": "180,00",
+          "p25": "120,00"
+        },
+        {
+          "code": "D4",
+          "label": "iná športová súťaž — každá začatá hodina nad 12 hodín sa účtuje osobitne",
+          "unit": "12 h",
+          "p50Old": "12 × 480,00 = 5760,00",
+          "p50": "12 × 210,00 = 2520,00",
+          "p25Old": "12 × 180,00 = 2160,00",
+          "p25": "12 × 100,00 = 1200,00"
+        }
       ]
     },
     {
       "title": "E — Prenájom priestorov na iný účel",
       "rows": [
-        { "code": "E1", "label": "natáčanie, fotenie, teambuilding, stretávka a pod.", "unit": "60 min", "p50": "dohodou", "p25": "dohodou" }
+        {
+          "code": "E1",
+          "label": "natáčanie, fotenie, teambuilding, stretávka a pod.",
+          "unit": "60 min",
+          "p50": "dohodou",
+          "p25": "dohodou"
+        }
       ],
       "note": "Dopyt zasielajte e-mailom na pasienky@starz.sk — ponuka sa pripravuje individuálne."
     },
     {
       "title": "F — Iné poplatky",
       "rows": [
-        { "code": "F1", "label": "prekročenie časového limitu zakúpeného vstupného", "unit": "za každých začatých 15 min", "p50": "2,00", "p25": "2,00" },
-        { "code": "F2", "label": "pokuta za zrušenie rezervovaného termínu menej ako 48 h pred začatím", "unit": "pokuta", "p50": "100 % sumy položky", "p25": "100 % sumy položky" },
-        { "code": "F3", "label": "strata čipového náramku alebo kľúča od úschovy cenností", "unit": "pokuta", "p50": "10,00", "p25": "10,00" },
-        { "code": "F4", "label": "prenájom kovovej uzamykateľnej klietky (50 × 80 × 200 cm) na športový materiál", "unit": "mesiac", "p50": "20,00", "p25": "20,00" }
+        {
+          "code": "F1",
+          "label": "prekročenie časového limitu zakúpeného vstupného",
+          "unit": "za každých začatých 15 min",
+          "p50": "2,00",
+          "p25": "2,00"
+        },
+        {
+          "code": "F2",
+          "label": "pokuta za zrušenie rezervovaného termínu menej ako 48 h pred začatím",
+          "unit": "pokuta",
+          "p50": "100 % sumy položky",
+          "p25": "100 % sumy položky"
+        },
+        {
+          "code": "F3",
+          "label": "strata čipového náramku alebo kľúča od úschovy cenností",
+          "unit": "pokuta",
+          "p50": "10,00",
+          "p25": "10,00"
+        },
+        {
+          "code": "F4",
+          "label": "prenájom kovovej uzamykateľnej klietky (50 × 80 × 200 cm) na športový materiál",
+          "unit": "mesiac",
+          "p50": "20,00",
+          "p25": "20,00"
+        }
       ]
     }
   ]

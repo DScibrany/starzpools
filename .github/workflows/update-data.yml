@@ -1,0 +1,48 @@
+name: Update schedule & pricing
+
+on:
+  schedule:
+    # Daily at 04:15 UTC (06:15 Europe/Bratislava in summer, 05:15 in winter)
+    - cron: "15 4 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install openpyxl requests beautifulsoup4
+
+      - name: Run update
+        run: python scripts/update_data.py update
+
+      - name: Commit and push changes
+        run: |
+          set -e
+          git config user.name "starz-bot"
+          git config user.email "starz-bot@users.noreply.github.com"
+          if git diff --quiet -- schedule.json schedule-50m.json pricing.json data/starz/; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git add schedule.json schedule-50m.json pricing.json data/starz/
+          DATE=$(date -u +'%Y-%m-%d')
+          git commit -m "Data refresh ${DATE} [skip ci]"
+          git push

@@ -52,9 +52,33 @@ async function load() {
   setupTheme();
   setupFinder();
   setupLinks();
+  renderPricingStaleBanner();
   renderPricing();
   render();
   setInterval(render, 30_000);
+}
+
+function renderPricingStaleBanner() {
+  const el = document.getElementById("pricing-stale");
+  if (!el) return;
+  const st = state.pricing?.status;
+  if (!st || st.upToDate !== false) {
+    el.hidden = true;
+    return;
+  }
+  const page = st.sourcePage || POOL_PAGES["25m"];
+  const reason = st.reason === "missing-link"
+    ? "Na stránke bazéna sa už nenašiel odkaz na cenník."
+    : st.reason === "download-failed"
+      ? "Aktuálny cenník sa nepodarilo stiahnuť."
+      : "Cenník na stránke bazéna sa líši od uloženej kópie.";
+  const checked = st.lastChecked ? ` (overené ${st.lastChecked})` : "";
+  el.innerHTML = `
+    <strong>Cenník môže byť neaktuálny.</strong>
+    <span>${reason}${checked}</span>
+    <a href="${page}" target="_blank" rel="noopener">Otvoriť stránku bazéna ↗</a>
+  `;
+  el.hidden = false;
 }
 
 function applyTheme(name) {
