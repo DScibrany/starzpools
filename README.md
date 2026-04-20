@@ -94,8 +94,10 @@ Cenník — každá bunka má ⚠:
 Otvorené nápady na ďalšie iterácie — nič z toho nie je blokujúce, slúži
 to len ako zoznam vecí, ktoré dávajú zmysel, ak sa projekt bude rozvíjať.
 
-- [ ] **PWA** — `manifest.json` + service worker, aby sa dala stránka
-      „pridať na plochu" a fungovala offline s poslednými staženými dátami.
+- [x] ~~**PWA** — `manifest.json` + service worker, aby sa dala stránka
+      „pridať na plochu" a fungovala offline s poslednými staženými dátami.~~
+      (hotovo — nazvaná **STARZ Pools**, ikony v `icons/`, `sw.js` so
+      cache-first stratégiou pre statické assety a network-first pre JSON.)
 - [ ] **Obľúbené sloty** — uložené do `localStorage`, s indikátorom pri
       riadku v heatmape a v karte „Dnes".
 - [ ] **Export do kalendára** — tlačidlo „Pridať do kalendára" pri

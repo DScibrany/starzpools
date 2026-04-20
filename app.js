@@ -38,6 +38,12 @@ async function fetchJSON(path) {
   return res.json();
 }
 
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
+
 async function load() {
   const [d25, d50, pricing] = await Promise.all([
     fetchJSON(POOL_FILE["25m"]).catch(() => null),
