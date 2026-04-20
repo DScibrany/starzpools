@@ -535,9 +535,10 @@ function renderTodayBlocks(now, data) {
       ${blocks.map(b => {
         const past = b.endMin <= nowMin;
         const live = nowMin >= b.startMin && nowMin < b.endMin;
+        const level = levelFor(b.lanes, data.maxLanes);
         return `<li class="${past ? "past" : live ? "live" : ""}">
           <span class="time">${fmt(b.startMin)}–${fmt(b.endMin)}</span>
-          <span class="lanes">${b.lanes} ${lanesWord(b.lanes)}</span>
+          <span class="lanes lane-${level}">${b.lanes} ${lanesWord(b.lanes)}</span>
           ${live ? '<span class="tag">prebieha</span>' : past ? '<span class="tag past">skončilo</span>' : ''}
         </li>`;
       }).join("")}
