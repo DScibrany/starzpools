@@ -28,6 +28,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.parse
 from pathlib import Path
 from typing import Iterable
@@ -93,28 +94,67 @@ def _require(module, name: str):
         raise SystemExit(f"Missing dependency '{name}'. Run: pip install {name}")
 
 
+# Browser-like defaults. bratislava.sk's WAF rejects UAs that self-identify
+# as bots ("starzpools-bot" → 403), so we pose as a recent desktop Chrome and
+# send the Accept/Accept-Language a real browser would. Kept centralised so
+# both the HTML scrape and the XLSX/PDF downloads use the same identity.
+_DEFAULT_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": (
+        "text/html,application/xhtml+xml,application/xml;q=0.9,"
+        "image/avif,image/webp,image/apng,*/*;q=0.8"
+    ),
+    "Accept-Language": "sk-SK,sk;q=0.9,en;q=0.8",
+    "Referer": "https://bratislava.sk/",
+}
+
+_RETRY_STATUSES = {408, 425, 429, 500, 502, 503, 504}
+_HTTP_ATTEMPTS = 4
+
+
 def _http_get(url: str, **kw) -> "requests.Response":
     _require(requests, "requests")
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (compatible; starzpools-bot/1.0; "
-            "+https://github.com/DScibrany/starzpools)"
-        ),
-    }
+    headers = dict(_DEFAULT_HEADERS)
     headers.update(kw.pop("headers", {}))
-    resp = requests.get(url, headers=headers, timeout=60, allow_redirects=True, **kw)
-    resp.raise_for_status()
-    return resp
+
+    last_err: Exception | None = None
+    for attempt in range(1, _HTTP_ATTEMPTS + 1):
+        try:
+            resp = requests.get(
+                url, headers=headers, timeout=60, allow_redirects=True, **kw
+            )
+        except requests.exceptions.RequestException as e:
+            last_err = e
+        else:
+            if resp.status_code < 400:
+                return resp
+            last_err = requests.HTTPError(
+                f"{resp.status_code} {resp.reason} for {url}", response=resp
+            )
+            # 4xx other than the explicit retry set are not worth retrying.
+            if resp.status_code not in _RETRY_STATUSES:
+                break
+        if attempt < _HTTP_ATTEMPTS:
+            time.sleep(2 ** (attempt - 1))  # 1, 2, 4 s
+    raise RuntimeError(f"GET {url} failed after {_HTTP_ATTEMPTS} attempts: {last_err}")
 
 
 def discover_links(page_url: str) -> dict:
-    """Return {'xlsx': url | None, 'pdf': url | None, 'pdf_text': str | None}."""
+    """Return {'xlsx': url | None, 'pdf': url | None, 'pdf_text': str | None,
+    'candidates': [...]}.  ``candidates`` lists every anchor we considered so
+    failures print something actionable instead of a bare "not found".
+    """
     _require(BeautifulSoup, "beautifulsoup4")
     html = _http_get(page_url).text
     soup = BeautifulSoup(html, "html.parser")
     xlsx_url = None
     pdf_url = None
     pdf_text = None
+    candidates = []
     for a in soup.find_all("a", href=True):
         text = " ".join(a.get_text(" ", strip=True).split())
         href = a["href"]
@@ -122,12 +162,18 @@ def discover_links(page_url: str) -> dict:
             continue
         abs_url = urllib.parse.urljoin(page_url, href)
         low = text.lower()
+        candidates.append({"text": text, "href": abs_url})
         if xlsx_url is None and "časový rozpis" in low and "voľn" in low:
             xlsx_url = abs_url
         if pdf_url is None and low.startswith("cenník"):
             pdf_url = abs_url
             pdf_text = text
-    return {"xlsx": xlsx_url, "pdf": pdf_url, "pdf_text": pdf_text}
+    return {
+        "xlsx": xlsx_url,
+        "pdf": pdf_url,
+        "pdf_text": pdf_text,
+        "candidates": candidates,
+    }
 
 
 def _download_binary(url: str, dest: Path) -> Path:
@@ -150,11 +196,14 @@ def fetch_sources() -> dict:
 
     for pool, page_url in POOL_PAGES.items():
         info = discover_links(page_url)
-        report["pools"][pool] = info
         if not info["xlsx"]:
+            preview = [c["text"] for c in info.get("candidates", []) if c["text"]][:20]
             raise RuntimeError(
-                f"Could not find the 'Časový rozpis…' link on {page_url}"
+                f"Could not find the 'Časový rozpis…' link on {page_url}. "
+                f"Saw {len(info.get('candidates', []))} anchors; "
+                f"first 20 link texts: {preview!r}"
             )
+        report["pools"][pool] = {k: v for k, v in info.items() if k != "candidates"}
         _download_binary(info["xlsx"], XLSX_FILES[pool])
 
     # Pricing PDF — discover on the 25m page (same PDF on both).
