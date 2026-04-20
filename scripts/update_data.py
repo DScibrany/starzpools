@@ -246,20 +246,65 @@ def _download_binary(url: str, dest: Path) -> Path:
 _POOL_TITLE_MARKER = {"25m": "25 m bazén", "50m": "50 m bazén"}
 
 
-def _sharepoint_download_url(url: str) -> str:
-    """SharePoint share links serve an HTML viewer by default; append
-    ``download=1`` so the server returns the raw XLSX."""
+def _sharepoint_download_candidates(url: str) -> list[str]:
+    """Return URL variants that might yield the raw XLSX for a SharePoint
+    share link.  Team-site share URLs of the form
+    ``https://<tenant>.sharepoint.com/:x:/t/<site>/<token>?e=…`` ignore
+    ``?download=1`` and serve the HTML viewer, but the same token works
+    against ``/sites/<site>/_layouts/15/download.aspx?share=<token>`` and
+    the equivalent ``guestaccess.aspx`` endpoint.
+    """
     if "sharepoint.com" not in url.lower():
-        return url
+        return [url]
+
+    candidates: list[str] = []
     if re.search(r"[?&]download=1(?:&|$)", url):
-        return url
-    sep = "&" if "?" in url else "?"
-    return f"{url}{sep}download=1"
+        candidates.append(url)
+    else:
+        sep = "&" if "?" in url else "?"
+        candidates.append(f"{url}{sep}download=1")
+
+    m = re.match(
+        r"(https?://[^/]+)/:x:/[tg]/([^/]+)/([^/?#]+)", url
+    )
+    if m:
+        host, site, token = m.groups()
+        candidates.append(
+            f"{host}/sites/{site}/_layouts/15/download.aspx?share={token}"
+        )
+        candidates.append(
+            f"{host}/sites/{site}/_layouts/15/guestaccess.aspx?"
+            f"share={token}&download=1"
+        )
+    return candidates
+
+
+_XLSX_MAGIC = b"PK\x03\x04"
 
 
 def _fetch_xlsx_bytes(url: str) -> bytes:
-    resp = _http_get(_sharepoint_download_url(url))
-    return resp.content
+    """Try each SharePoint download variant until one returns something that
+    starts with the XLSX (zip) magic. Raises with per-attempt details
+    otherwise so the Actions log points at the failing endpoint."""
+    errors: list[str] = []
+    for candidate in _sharepoint_download_candidates(url):
+        try:
+            resp = _http_get(candidate)
+        except Exception as e:
+            errors.append(f"{candidate} -> {type(e).__name__}: {e}")
+            continue
+        content = resp.content
+        if content.startswith(_XLSX_MAGIC):
+            return content
+        ct = resp.headers.get("Content-Type", "?")
+        errors.append(
+            f"{candidate} -> HTTP {resp.status_code} {len(content)}B "
+            f"Content-Type={ct!r} prefix={content[:16]!r}"
+        )
+    raise RuntimeError(
+        f"No SharePoint variant returned an XLSX for {url}; tried:\n  "
+        + "\n  ".join(errors)
+    )
 
 
 def _workbook_pool_tag(xlsx_bytes: bytes) -> str | None:
@@ -318,13 +363,15 @@ def fetch_sources() -> dict:
             try:
                 data = _fetch_xlsx_bytes(url)
             except Exception as e:
-                print(f"[fetch] {url}: download failed ({e})", file=sys.stderr)
+                # Full per-attempt breakdown is already in the exception body.
+                for line in str(e).splitlines():
+                    print(f"[fetch] {line}", file=sys.stderr)
                 continue
             tag = _workbook_pool_tag(data)
             if tag is None:
                 print(
-                    f"[fetch] {url}: not a Verejnost workbook (missing "
-                    f"sheet or title marker)",
+                    f"[fetch] {url}: downloaded {len(data)}B but no "
+                    f"'Verejnost' sheet / pool-title marker found",
                     file=sys.stderr,
                 )
                 continue
