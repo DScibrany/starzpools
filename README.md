@@ -1,6 +1,10 @@
 # STARZ Pasienky — voľné dráhy
 
-**Naživo:** <https://dscibrany.github.io/starzpools/>
+<p align="center">
+  <a href="https://dscibrany.github.io/starzpools/"><img alt="Naživo: dscibrany.github.io/starzpools" src="https://img.shields.io/badge/Naživo-dscibrany.github.io%2Fstarzpools-10b981?style=for-the-badge&logo=github&logoColor=white"></a>
+</p>
+
+> ### [Otvoriť živý dashboard &rarr;](https://dscibrany.github.io/starzpools/)
 
 Jednoduchý statický dashboard, ktorý vizualizuje počet voľných dráh pre
 verejnosť v Mestskej plavárni Pasienky (STARZ Bratislava) v 15-minútových
