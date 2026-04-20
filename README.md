@@ -13,24 +13,32 @@ Zdroje:
 
 ## Ukážka
 
+<details open>
+<summary>50 m bazén (predvolený)</summary>
+
+![50 m bazén — dashboard](docs/screenshot-50m.png)
+
+</details>
+
+<details>
+<summary>25 m bazén</summary>
+
 ![25 m bazén — dashboard](docs/screenshot-25m.png)
 
-### Farebné témy heatmapy
+</details>
+
+<details>
+<summary>Farebné témy heatmapy</summary>
 
 Téma sa prepína vpravo nad heatmapou a ukladá sa do `localStorage`.
 
-| Viridis (predvolená) | Modrá (monochromatická) |
+| Semafor (predvolená) | Viridis |
 |---|---|
-| ![Viridis](docs/screenshot-theme-viridis.png) | ![Modrá](docs/screenshot-theme-blues.png) |
+| ![Semafor](docs/screenshot-theme-traffic.png) | ![Viridis](docs/screenshot-theme-viridis.png) |
 
-| Semafor | Rozhranie 50 % |
+| Modrá (monochromatická) | Rozhranie 50 % |
 |---|---|
-| ![Semafor](docs/screenshot-theme-traffic.png) | ![Rozhranie 50 %](docs/screenshot-theme-diverging.png) |
-
-<details>
-<summary>50 m bazén</summary>
-
-![50 m bazén — dashboard](docs/screenshot-50m.png)
+| ![Modrá](docs/screenshot-theme-blues.png) | ![Rozhranie 50 %](docs/screenshot-theme-diverging.png) |
 
 </details>
 
@@ -76,6 +84,39 @@ Cenník — každá bunka má ⚠:
 ![Cenník pri neaktuálnom cenníku](docs/screenshot-stale-pricing.png)
 
 </details>
+
+## TODO
+
+Otvorené nápady na ďalšie iterácie — nič z toho nie je blokujúce, slúži
+to len ako zoznam vecí, ktoré dávajú zmysel, ak sa projekt bude rozvíjať.
+
+- [ ] **PWA** — `manifest.json` + service worker, aby sa dala stránka
+      „pridať na plochu" a fungovala offline s poslednými staženými dátami.
+- [ ] **Obľúbené sloty** — uložené do `localStorage`, s indikátorom pri
+      riadku v heatmape a v karte „Dnes".
+- [ ] **Export do kalendára** — tlačidlo „Pridať do kalendára" pri
+      každom bloku/výsledku vyhľadávača (`.ics` link).
+- [ ] **Upozornenia** — opt-in web push, keď sa uvoľní vopred zvolený slot
+      (napr. „utorok 18:00, aspoň 3 dráhy").
+- [ ] **Anglická verzia** — jazykový prepínač (sk/en), texty vytiahnuté
+      do `i18n.json`.
+- [ ] **Trend obsadenosti** — tab/panel s priemerom voľných dráh po
+      hodinách/dňoch za posledných N týždňov (vyžaduje archiváciu
+      `schedule.json` snapshotov).
+- [ ] **Robustnosť scrapera** — ak sa zmení štruktúra zdrojového
+      XLSX/HTML, dashboard by mal zobraziť banner „dáta môžu byť
+      neaktuálne" (podobne ako pri cenníku).
+- [ ] **Ďalšie STARZ bazény** — Rosnička, Delfín, Tehelné pole; rovnaký
+      formát `schedule*.json`, len s iným pool-tabom.
+- [ ] **A11y audit** — ARIA role pre heatmap-cells, klávesová navigácia
+      po bunkách, kontrast tmavých farieb v Semafore.
+- [ ] **Zdieľanie odkazu** — URL s parametrami `?date=…&from=…&lanes=…`,
+      ktorá otvorí dashboard s predvyplneným vyhľadávačom.
+- [ ] **Print/share karta** — „dnešný plán" ako jedna obrazovka
+      optimalizovaná na screenshot do chatu.
+- [ ] **Automatické mazanie stale Pages environment branches** — keď
+      workflow deploynutia spadne, aktuálne treba manuálne upratať
+      deployment-branch rule.
 
 ## Funkcie
 
