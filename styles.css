@@ -274,6 +274,25 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
 .blocks .tag { margin-left: auto; font-size: 11px; padding: 1px 8px; border-radius: 999px; background: var(--now); color: #02223a; text-transform: uppercase; letter-spacing: .08em; }
 .blocks .tag.past { background: #475569; color: #e2e8f0; }
 
+.blocks-toggle {
+  display: none;
+  margin-top: 8px;
+  background: none;
+  color: var(--accent);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.blocks-toggle:hover { border-color: var(--accent); }
+@media (max-width: 760px) {
+  .blocks li.mobile-hidden { display: none; }
+  .blocks.expanded li.mobile-hidden { display: flex; }
+  .blocks-toggle { display: inline-block; }
+}
+
 .section-title {
   margin: 18px 0 10px;
   font-size: 13px;

@@ -529,21 +529,54 @@ function renderTodayBlocks(now, data) {
     box.innerHTML = `<h3>Dnes (${d}.${m}.)</h3><div class="muted">Žiadne verejné bloky.</div>`;
     return;
   }
+  const items = blocks.map(b => ({
+    b,
+    past: b.endMin <= nowMin,
+    live: nowMin >= b.startMin && nowMin < b.endMin,
+  }));
+  let lastPastIdx = -1;
+  items.forEach((it, i) => { if (it.past) lastPastIdx = i; });
+  let futureSeen = 0;
+  let hiddenCount = 0;
+  items.forEach((it, i) => {
+    if (it.past && i !== lastPastIdx) it.hide = true;
+    else if (!it.past && !it.live) {
+      futureSeen++;
+      if (futureSeen > 2) it.hide = true;
+    }
+    if (it.hide) hiddenCount++;
+  });
+
+  const rows = items.map(it => {
+    const b = it.b;
+    const level = levelFor(b.lanes, data.maxLanes);
+    const cls = [it.past ? "past" : it.live ? "live" : "", it.hide ? "mobile-hidden" : ""].filter(Boolean).join(" ");
+    return `<li class="${cls}">
+      <span class="time">${fmt(b.startMin)}–${fmt(b.endMin)}</span>
+      <span class="lanes lane-${level}">${b.lanes} ${lanesWord(b.lanes)}</span>
+      ${it.live ? '<span class="tag">prebieha</span>' : it.past ? '<span class="tag past">skončilo</span>' : ''}
+    </li>`;
+  }).join("");
+
+  const toggleHtml = hiddenCount > 0
+    ? `<button type="button" class="blocks-toggle" aria-expanded="false">Zobraziť všetko (+${hiddenCount})</button>`
+    : "";
+
   box.innerHTML = `
     <h3>Dnes · ${day.weekday} ${d}.${m}.</h3>
-    <ul class="blocks">
-      ${blocks.map(b => {
-        const past = b.endMin <= nowMin;
-        const live = nowMin >= b.startMin && nowMin < b.endMin;
-        const level = levelFor(b.lanes, data.maxLanes);
-        return `<li class="${past ? "past" : live ? "live" : ""}">
-          <span class="time">${fmt(b.startMin)}–${fmt(b.endMin)}</span>
-          <span class="lanes lane-${level}">${b.lanes} ${lanesWord(b.lanes)}</span>
-          ${live ? '<span class="tag">prebieha</span>' : past ? '<span class="tag past">skončilo</span>' : ''}
-        </li>`;
-      }).join("")}
-    </ul>
+    <ul class="blocks">${rows}</ul>
+    ${toggleHtml}
   `;
+
+  const toggle = box.querySelector(".blocks-toggle");
+  if (toggle) {
+    toggle.addEventListener("click", () => {
+      const ul = box.querySelector(".blocks");
+      const expanded = ul.classList.toggle("expanded");
+      toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+      toggle.textContent = expanded ? "Zbaliť" : `Zobraziť všetko (+${hiddenCount})`;
+    });
+  }
 }
 
 function setupFinder() {
