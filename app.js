@@ -18,6 +18,7 @@ const fmt = (min) => {
   return `${h}:${m}`;
 };
 const pad = (n) => String(n).padStart(2, "0");
+const lanesWord = (n) => (n === 1 ? "dráha" : n >= 2 && n <= 4 ? "dráhy" : "dráh");
 const todayISO = (d = new Date()) =>
   `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
@@ -412,7 +413,7 @@ function renderNow(now, data) {
   } else if (nextIdx >= 0) {
     const t = startMin + nextIdx * slot;
     const mins = t - (now.getHours() * 60 + now.getMinutes());
-    next.textContent = `Najbližší verejný blok: ${fmt(t)} (${day.free[nextIdx]} dráhy) · o ${mins} min.`;
+    next.textContent = `Najbližší verejný blok: ${fmt(t)} (${day.free[nextIdx]} ${lanesWord(day.free[nextIdx])}) · o ${mins} min.`;
   } else {
     next.textContent = "Dnes už nie je ďalší verejný blok.";
   }
@@ -536,7 +537,7 @@ function renderTodayBlocks(now, data) {
         const live = nowMin >= b.startMin && nowMin < b.endMin;
         return `<li class="${past ? "past" : live ? "live" : ""}">
           <span class="time">${fmt(b.startMin)}–${fmt(b.endMin)}</span>
-          <span class="lanes">${b.lanes} ${b.lanes === 1 ? "dráha" : "dráhy"}</span>
+          <span class="lanes">${b.lanes} ${lanesWord(b.lanes)}</span>
           ${live ? '<span class="tag">prebieha</span>' : past ? '<span class="tag past">skončilo</span>' : ''}
         </li>`;
       }).join("")}
@@ -629,7 +630,7 @@ function renderFinderResults(hits) {
       <span class="d">${WEEKDAY_SHORT[h.weekday] || h.weekday} ${d}.${m}.</span>
       <span class="t">${fmt(h.startMin)}–${fmt(h.endMin)}</span>
       <span class="len muted">${lenStr}</span>
-      <span class="l">≥${h.lanes} ${h.lanes === 1 ? "dráha" : "dráhy"}</span>
+      <span class="l">≥${h.lanes} ${lanesWord(h.lanes)}</span>
       ${chip}
     </div>`);
   }
