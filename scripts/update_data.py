@@ -45,6 +45,11 @@ except ImportError:
 
 import openpyxl
 
+try:
+    import xlrd  # legacy .xls support; SharePoint serves that format now
+except ImportError:
+    xlrd = None
+
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data" / "starz"
 
@@ -279,13 +284,22 @@ def _sharepoint_download_candidates(url: str) -> list[str]:
     return candidates
 
 
+# XLSX files are zip containers; legacy XLS files are OLE2 compound docs.
+# SharePoint serves the STARZ workbooks as .xls (Content-Type
+# application/vnd.ms-excel), so accept either magic.
 _XLSX_MAGIC = b"PK\x03\x04"
+_XLS_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+
+
+def _looks_like_workbook(content: bytes) -> bool:
+    return content.startswith(_XLSX_MAGIC) or content.startswith(_XLS_MAGIC)
 
 
 def _fetch_xlsx_bytes(url: str) -> bytes:
     """Try each SharePoint download variant until one returns something that
-    starts with the XLSX (zip) magic. Raises with per-attempt details
-    otherwise so the Actions log points at the failing endpoint."""
+    starts with an Excel workbook magic (.xls OLE2 or .xlsx zip). Raises
+    with per-attempt details otherwise so the Actions log points at the
+    failing endpoint."""
     errors: list[str] = []
     for candidate in _sharepoint_download_candidates(url):
         try:
@@ -294,7 +308,7 @@ def _fetch_xlsx_bytes(url: str) -> bytes:
             errors.append(f"{candidate} -> {type(e).__name__}: {e}")
             continue
         content = resp.content
-        if content.startswith(_XLSX_MAGIC):
+        if _looks_like_workbook(content):
             return content
         ct = resp.headers.get("Content-Type", "?")
         errors.append(
@@ -302,23 +316,62 @@ def _fetch_xlsx_bytes(url: str) -> bytes:
             f"Content-Type={ct!r} prefix={content[:16]!r}"
         )
     raise RuntimeError(
-        f"No SharePoint variant returned an XLSX for {url}; tried:\n  "
+        f"No SharePoint variant returned a workbook for {url}; tried:\n  "
         + "\n  ".join(errors)
     )
 
 
-def _workbook_pool_tag(xlsx_bytes: bytes) -> str | None:
+def _read_verejnost_rows(workbook_bytes: bytes) -> list[list]:
+    """Return every row of the 'Verejnost' sheet as a list of lists,
+    regardless of whether the workbook is .xlsx (zip) or legacy .xls
+    (OLE2). Dates come back as ``datetime`` objects in both branches.
+    """
+    if workbook_bytes.startswith(_XLSX_MAGIC):
+        wb = openpyxl.load_workbook(
+            io.BytesIO(workbook_bytes), data_only=True, read_only=True
+        )
+        if "Verejnost" not in wb.sheetnames:
+            raise RuntimeError("xlsx workbook has no 'Verejnost' sheet")
+        ws = wb["Verejnost"]
+        return [list(row) for row in ws.iter_rows(values_only=True)]
+
+    if workbook_bytes.startswith(_XLS_MAGIC):
+        _require(xlrd, "xlrd")
+        wb = xlrd.open_workbook(file_contents=workbook_bytes)
+        if "Verejnost" not in wb.sheet_names():
+            raise RuntimeError("xls workbook has no 'Verejnost' sheet")
+        sh = wb.sheet_by_name("Verejnost")
+        rows: list[list] = []
+        for r in range(sh.nrows):
+            row: list = []
+            for c in range(sh.ncols):
+                cell = sh.cell(r, c)
+                val = cell.value
+                if cell.ctype == xlrd.XL_CELL_DATE:
+                    tup = xlrd.xldate_as_tuple(val, wb.datemode)
+                    val = dt.datetime(*tup)
+                elif cell.ctype == xlrd.XL_CELL_EMPTY:
+                    val = None
+                elif cell.ctype == xlrd.XL_CELL_BOOLEAN:
+                    val = bool(val)
+                elif cell.ctype == xlrd.XL_CELL_ERROR:
+                    val = None
+                row.append(val)
+            rows.append(row)
+        return rows
+
+    raise RuntimeError(
+        f"Unrecognised workbook magic: {workbook_bytes[:8]!r}"
+    )
+
+
+def _workbook_pool_tag(workbook_bytes: bytes) -> str | None:
     """Return '25m' / '50m' if the workbook's title matches, else None."""
     try:
-        wb = openpyxl.load_workbook(
-            io.BytesIO(xlsx_bytes), data_only=True, read_only=True
-        )
+        rows = _read_verejnost_rows(workbook_bytes)
     except Exception:
         return None
-    if "Verejnost" not in wb.sheetnames:
-        return None
-    ws = wb["Verejnost"]
-    for row in ws.iter_rows(min_row=1, max_row=6, values_only=True):
+    for row in rows[:6]:
         for value in row:
             if not isinstance(value, str):
                 continue
@@ -415,39 +468,39 @@ def fetch_sources() -> dict:
 
 # ----------------------------------------------------------- xlsx transform -
 
-def _row_values(ws, row_idx: int) -> list:
-    return next(ws.iter_rows(min_row=row_idx, max_row=row_idx, values_only=True))
-
-
 def transform_xlsx(xlsx_path: Path, meta: dict, source_page: str) -> dict:
-    wb = openpyxl.load_workbook(xlsx_path, data_only=True)
-    ws = wb["Verejnost"]
+    rows = _read_verejnost_rows(xlsx_path.read_bytes())
     days = []
-    date_row = 6  # 1-based; first date always at row 6
-    while date_row <= ws.max_row:
-        date_val = ws.cell(row=date_row, column=1).value
-        if not isinstance(date_val, dt.datetime):
+    # 0-based indexing; the first date used to land on 1-based row 6.
+    date_idx = 5
+    while date_idx < len(rows):
+        first_col = rows[date_idx][0] if rows[date_idx] else None
+        if not isinstance(first_col, dt.datetime):
             break
-        counter_row = date_row + COUNTER_ROW_OFFSET
-        label = ws.cell(row=counter_row, column=1).value
+        counter_idx = date_idx + COUNTER_ROW_OFFSET
+        if counter_idx >= len(rows):
+            raise RuntimeError(
+                f"Workbook truncated: expected 'Počet voľných dráh' row at "
+                f"index {counter_idx} but sheet only has {len(rows)} rows"
+            )
+        counter_row = rows[counter_idx]
+        label = counter_row[0] if counter_row else None
         if label != "Počet voľných dráh":
             raise RuntimeError(
-                f"Unexpected layout: row {counter_row} col A = {label!r}, "
+                f"Unexpected layout: row {counter_idx + 1} col A = {label!r}, "
                 "expected 'Počet voľných dráh'"
             )
-        row = _row_values(ws, counter_row)
-        slots = row[DATA_COL_START: DATA_COL_START + SLOTS_PER_DAY]
+        slots = counter_row[DATA_COL_START: DATA_COL_START + SLOTS_PER_DAY]
+        # Pad if the legacy .xls export trims trailing empty cells.
+        if len(slots) < SLOTS_PER_DAY:
+            slots = list(slots) + [None] * (SLOTS_PER_DAY - len(slots))
         free = [int(v) if isinstance(v, (int, float)) else 0 for v in slots]
-        if len(free) != SLOTS_PER_DAY:
-            raise RuntimeError(
-                f"Row {counter_row}: got {len(free)} slots, expected {SLOTS_PER_DAY}"
-            )
         days.append({
-            "date": date_val.strftime("%Y-%m-%d"),
-            "weekday": SK_WEEKDAYS[date_val.weekday()],
+            "date": first_col.strftime("%Y-%m-%d"),
+            "weekday": SK_WEEKDAYS[first_col.weekday()],
             "free": free,
         })
-        date_row += ROWS_PER_DAY
+        date_idx += ROWS_PER_DAY
 
     if not days:
         raise RuntimeError(f"No day rows found in {xlsx_path}")
