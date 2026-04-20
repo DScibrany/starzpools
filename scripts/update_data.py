@@ -45,6 +45,11 @@ except ImportError:
 
 import openpyxl
 
+try:
+    import xlrd  # legacy .xls support; SharePoint serves that format now
+except ImportError:
+    xlrd = None
+
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data" / "starz"
 
@@ -143,33 +148,87 @@ def _http_get(url: str, **kw) -> "requests.Response":
     raise RuntimeError(f"GET {url} failed after {_HTTP_ATTEMPTS} attempts: {last_err}")
 
 
+def _href_interesting(href: str) -> bool:
+    """Heuristic for anchors worth logging when discovery fails — filters out
+    nav / utility links so the error preview shows file links only."""
+    h = href.lower()
+    return any(
+        tok in h
+        for tok in (
+            "sharepoint", "onedrive", "dropbox",
+            "s3.bratislava.sk", "s3.amazonaws", "cdn.",
+            ".xlsx", ".xls", ".pdf", ".docx",
+            "rezerv", "rozpis", "verejnost", "cennik",
+        )
+    )
+
+
+def _matches_xlsx(text_low: str, href_low: str) -> bool:
+    """STARZ schedule workbook candidate. SharePoint URLs are opaque
+    (`/:x:/t/<site>/IQ...`) and the anchor text is now a generic
+    "Prejsť na stránku", so the strongest signal is the href: either a
+    direct `.xlsx` or a SharePoint Excel share (`/:x:/`)."""
+    if "rozpis" in text_low and (
+        "voľn" in text_low or "plavec" in text_low or "dráh" in text_low
+    ):
+        return True
+    if ".xlsx" in href_low:
+        return True
+    if "sharepoint.com" in href_low and "/:x:/" in href_low:
+        return True
+    return False
+
+
+def _matches_pdf(text_low: str, href_low: str) -> bool:
+    """Cenník PDF. Tolerate both diacritic spellings and the lowercase 'cennik'
+    that appears in S3 object keys."""
+    looks_like_pdf = (
+        href_low.endswith(".pdf")
+        or ".pdf?" in href_low
+        or "s3.bratislava.sk" in href_low
+    )
+    if not looks_like_pdf:
+        return False
+    return (
+        text_low.startswith("cenník")
+        or "cenník" in text_low
+        or "cennik" in text_low
+        or "cennik" in href_low
+    )
+
+
 def discover_links(page_url: str) -> dict:
-    """Return {'xlsx': url | None, 'pdf': url | None, 'pdf_text': str | None,
-    'candidates': [...]}.  ``candidates`` lists every anchor we considered so
-    failures print something actionable instead of a bare "not found".
+    """Return {'xlsx_urls': [url, ...], 'pdf': url | None,
+    'pdf_text': str | None, 'candidates': [...]}.
+
+    The page lists multiple SharePoint workbooks (25 m + 50 m on the same
+    page) behind generic "Prejsť na stránku" buttons, so the anchor text is
+    no longer a reliable discriminator. Return every XLSX-looking URL we
+    find; the caller picks the right one by reading the workbook's title.
     """
     _require(BeautifulSoup, "beautifulsoup4")
     html = _http_get(page_url).text
     soup = BeautifulSoup(html, "html.parser")
-    xlsx_url = None
+    xlsx_urls: list[str] = []
     pdf_url = None
     pdf_text = None
     candidates = []
     for a in soup.find_all("a", href=True):
         text = " ".join(a.get_text(" ", strip=True).split())
         href = a["href"]
-        if not href:
+        if not href or href.startswith("#") or href.startswith("javascript:"):
             continue
         abs_url = urllib.parse.urljoin(page_url, href)
-        low = text.lower()
+        text_low = text.lower()
+        href_low = abs_url.lower()
         candidates.append({"text": text, "href": abs_url})
-        if xlsx_url is None and "časový rozpis" in low and "voľn" in low:
-            xlsx_url = abs_url
-        if pdf_url is None and low.startswith("cenník"):
+        if _matches_xlsx(text_low, href_low) and abs_url not in xlsx_urls:
+            xlsx_urls.append(abs_url)
+        if pdf_url is None and _matches_pdf(text_low, href_low):
             pdf_url = abs_url
             pdf_text = text
     return {
-        "xlsx": xlsx_url,
+        "xlsx_urls": xlsx_urls,
         "pdf": pdf_url,
         "pdf_text": pdf_text,
         "candidates": candidates,
@@ -186,6 +245,143 @@ def _download_binary(url: str, dest: Path) -> Path:
     return dest
 
 
+# Row-2 of the Verejnost sheet contains a human-readable title, e.g.
+# "Otváracie hodiny pre verejnosť na 25 m bazéne …". The pool is the only
+# reliable discriminator between the two workbooks linked on each page.
+_POOL_TITLE_MARKER = {"25m": "25 m bazén", "50m": "50 m bazén"}
+
+
+def _sharepoint_download_candidates(url: str) -> list[str]:
+    """Return URL variants that might yield the raw XLSX for a SharePoint
+    share link.  Team-site share URLs of the form
+    ``https://<tenant>.sharepoint.com/:x:/t/<site>/<token>?e=…`` ignore
+    ``?download=1`` and serve the HTML viewer, but the same token works
+    against ``/sites/<site>/_layouts/15/download.aspx?share=<token>`` and
+    the equivalent ``guestaccess.aspx`` endpoint.
+    """
+    if "sharepoint.com" not in url.lower():
+        return [url]
+
+    candidates: list[str] = []
+    if re.search(r"[?&]download=1(?:&|$)", url):
+        candidates.append(url)
+    else:
+        sep = "&" if "?" in url else "?"
+        candidates.append(f"{url}{sep}download=1")
+
+    m = re.match(
+        r"(https?://[^/]+)/:x:/[tg]/([^/]+)/([^/?#]+)", url
+    )
+    if m:
+        host, site, token = m.groups()
+        candidates.append(
+            f"{host}/sites/{site}/_layouts/15/download.aspx?share={token}"
+        )
+        candidates.append(
+            f"{host}/sites/{site}/_layouts/15/guestaccess.aspx?"
+            f"share={token}&download=1"
+        )
+    return candidates
+
+
+# XLSX files are zip containers; legacy XLS files are OLE2 compound docs.
+# SharePoint serves the STARZ workbooks as .xls (Content-Type
+# application/vnd.ms-excel), so accept either magic.
+_XLSX_MAGIC = b"PK\x03\x04"
+_XLS_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+
+
+def _looks_like_workbook(content: bytes) -> bool:
+    return content.startswith(_XLSX_MAGIC) or content.startswith(_XLS_MAGIC)
+
+
+def _fetch_xlsx_bytes(url: str) -> bytes:
+    """Try each SharePoint download variant until one returns something that
+    starts with an Excel workbook magic (.xls OLE2 or .xlsx zip). Raises
+    with per-attempt details otherwise so the Actions log points at the
+    failing endpoint."""
+    errors: list[str] = []
+    for candidate in _sharepoint_download_candidates(url):
+        try:
+            resp = _http_get(candidate)
+        except Exception as e:
+            errors.append(f"{candidate} -> {type(e).__name__}: {e}")
+            continue
+        content = resp.content
+        if _looks_like_workbook(content):
+            return content
+        ct = resp.headers.get("Content-Type", "?")
+        errors.append(
+            f"{candidate} -> HTTP {resp.status_code} {len(content)}B "
+            f"Content-Type={ct!r} prefix={content[:16]!r}"
+        )
+    raise RuntimeError(
+        f"No SharePoint variant returned a workbook for {url}; tried:\n  "
+        + "\n  ".join(errors)
+    )
+
+
+def _read_verejnost_rows(workbook_bytes: bytes) -> list[list]:
+    """Return every row of the 'Verejnost' sheet as a list of lists,
+    regardless of whether the workbook is .xlsx (zip) or legacy .xls
+    (OLE2). Dates come back as ``datetime`` objects in both branches.
+    """
+    if workbook_bytes.startswith(_XLSX_MAGIC):
+        wb = openpyxl.load_workbook(
+            io.BytesIO(workbook_bytes), data_only=True, read_only=True
+        )
+        if "Verejnost" not in wb.sheetnames:
+            raise RuntimeError("xlsx workbook has no 'Verejnost' sheet")
+        ws = wb["Verejnost"]
+        return [list(row) for row in ws.iter_rows(values_only=True)]
+
+    if workbook_bytes.startswith(_XLS_MAGIC):
+        _require(xlrd, "xlrd")
+        wb = xlrd.open_workbook(file_contents=workbook_bytes)
+        if "Verejnost" not in wb.sheet_names():
+            raise RuntimeError("xls workbook has no 'Verejnost' sheet")
+        sh = wb.sheet_by_name("Verejnost")
+        rows: list[list] = []
+        for r in range(sh.nrows):
+            row: list = []
+            for c in range(sh.ncols):
+                cell = sh.cell(r, c)
+                val = cell.value
+                if cell.ctype == xlrd.XL_CELL_DATE:
+                    tup = xlrd.xldate_as_tuple(val, wb.datemode)
+                    val = dt.datetime(*tup)
+                elif cell.ctype == xlrd.XL_CELL_EMPTY:
+                    val = None
+                elif cell.ctype == xlrd.XL_CELL_BOOLEAN:
+                    val = bool(val)
+                elif cell.ctype == xlrd.XL_CELL_ERROR:
+                    val = None
+                row.append(val)
+            rows.append(row)
+        return rows
+
+    raise RuntimeError(
+        f"Unrecognised workbook magic: {workbook_bytes[:8]!r}"
+    )
+
+
+def _workbook_pool_tag(workbook_bytes: bytes) -> str | None:
+    """Return '25m' / '50m' if the workbook's title matches, else None."""
+    try:
+        rows = _read_verejnost_rows(workbook_bytes)
+    except Exception:
+        return None
+    for row in rows[:6]:
+        for value in row:
+            if not isinstance(value, str):
+                continue
+            low = value.lower()
+            for tag, marker in _POOL_TITLE_MARKER.items():
+                if marker in low:
+                    return tag
+    return None
+
+
 def fetch_sources() -> dict:
     """Download XLSX for both pools and the current pricing PDF.
 
@@ -194,20 +390,71 @@ def fetch_sources() -> dict:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     report = {"pools": {}, "pricing": {}}
 
+    # Each pool page lists multiple SharePoint workbooks (25 m + 50 m);
+    # download each candidate once and key the cache by URL, then map pool→URL
+    # by reading the workbook title.
+    xlsx_by_pool: dict[str, str] = {}
+    xlsx_cache: dict[str, bytes] = {}
+    pool_page_info: dict[str, dict] = {}
+
     for pool, page_url in POOL_PAGES.items():
         info = discover_links(page_url)
-        if not info["xlsx"]:
-            preview = [c["text"] for c in info.get("candidates", []) if c["text"]][:20]
+        pool_page_info[pool] = info
+        if not info["xlsx_urls"]:
+            cands = info.get("candidates", [])
+            interesting = [c for c in cands if _href_interesting(c["href"])]
+            to_show = interesting if interesting else cands
+            formatted = [f"{c['text']!r} -> {c['href']}" for c in to_show[:40]]
             raise RuntimeError(
-                f"Could not find the 'Časový rozpis…' link on {page_url}. "
-                f"Saw {len(info.get('candidates', []))} anchors; "
-                f"first 20 link texts: {preview!r}"
+                f"No XLSX-looking links on {page_url}. "
+                f"Saw {len(cands)} anchors, {len(interesting)} with interesting href. "
+                f"Showing up to 40:\n  " + "\n  ".join(formatted)
             )
-        report["pools"][pool] = {k: v for k, v in info.items() if k != "candidates"}
-        _download_binary(info["xlsx"], XLSX_FILES[pool])
+        for url in info["xlsx_urls"]:
+            if url in xlsx_cache:
+                continue
+            try:
+                data = _fetch_xlsx_bytes(url)
+            except Exception as e:
+                # Full per-attempt breakdown is already in the exception body.
+                for line in str(e).splitlines():
+                    print(f"[fetch] {line}", file=sys.stderr)
+                continue
+            tag = _workbook_pool_tag(data)
+            if tag is None:
+                print(
+                    f"[fetch] {url}: downloaded {len(data)}B but no "
+                    f"'Verejnost' sheet / pool-title marker found",
+                    file=sys.stderr,
+                )
+                continue
+            xlsx_cache[url] = data
+            # First workbook wins for each pool; duplicates are ignored.
+            xlsx_by_pool.setdefault(tag, url)
+
+    missing = [p for p in POOL_PAGES if p not in xlsx_by_pool]
+    if missing:
+        tried = []
+        for pool, info in pool_page_info.items():
+            tried.append(f"{pool} page saw: {info['xlsx_urls']}")
+        raise RuntimeError(
+            f"Could not identify workbook(s) for pool(s): {missing}. "
+            + " | ".join(tried)
+        )
+
+    for pool, url in xlsx_by_pool.items():
+        XLSX_FILES[pool].parent.mkdir(parents=True, exist_ok=True)
+        XLSX_FILES[pool].write_bytes(xlsx_cache[url])
+        page_info = pool_page_info.get(pool, {})
+        report["pools"][pool] = {
+            "xlsx": url,
+            "pdf": page_info.get("pdf"),
+            "pdf_text": page_info.get("pdf_text"),
+            "xlsx_candidates": page_info.get("xlsx_urls", []),
+        }
 
     # Pricing PDF — discover on the 25m page (same PDF on both).
-    pdf_info = report["pools"]["25m"]
+    pdf_info = pool_page_info.get("25m", {})
     pdf_url = pdf_info.get("pdf")
     report["pricing"]["url"] = pdf_url
     report["pricing"]["source_page"] = POOL_PAGES["25m"]
@@ -221,39 +468,39 @@ def fetch_sources() -> dict:
 
 # ----------------------------------------------------------- xlsx transform -
 
-def _row_values(ws, row_idx: int) -> list:
-    return next(ws.iter_rows(min_row=row_idx, max_row=row_idx, values_only=True))
-
-
 def transform_xlsx(xlsx_path: Path, meta: dict, source_page: str) -> dict:
-    wb = openpyxl.load_workbook(xlsx_path, data_only=True)
-    ws = wb["Verejnost"]
+    rows = _read_verejnost_rows(xlsx_path.read_bytes())
     days = []
-    date_row = 6  # 1-based; first date always at row 6
-    while date_row <= ws.max_row:
-        date_val = ws.cell(row=date_row, column=1).value
-        if not isinstance(date_val, dt.datetime):
+    # 0-based indexing; the first date used to land on 1-based row 6.
+    date_idx = 5
+    while date_idx < len(rows):
+        first_col = rows[date_idx][0] if rows[date_idx] else None
+        if not isinstance(first_col, dt.datetime):
             break
-        counter_row = date_row + COUNTER_ROW_OFFSET
-        label = ws.cell(row=counter_row, column=1).value
+        counter_idx = date_idx + COUNTER_ROW_OFFSET
+        if counter_idx >= len(rows):
+            raise RuntimeError(
+                f"Workbook truncated: expected 'Počet voľných dráh' row at "
+                f"index {counter_idx} but sheet only has {len(rows)} rows"
+            )
+        counter_row = rows[counter_idx]
+        label = counter_row[0] if counter_row else None
         if label != "Počet voľných dráh":
             raise RuntimeError(
-                f"Unexpected layout: row {counter_row} col A = {label!r}, "
+                f"Unexpected layout: row {counter_idx + 1} col A = {label!r}, "
                 "expected 'Počet voľných dráh'"
             )
-        row = _row_values(ws, counter_row)
-        slots = row[DATA_COL_START: DATA_COL_START + SLOTS_PER_DAY]
+        slots = counter_row[DATA_COL_START: DATA_COL_START + SLOTS_PER_DAY]
+        # Pad if the legacy .xls export trims trailing empty cells.
+        if len(slots) < SLOTS_PER_DAY:
+            slots = list(slots) + [None] * (SLOTS_PER_DAY - len(slots))
         free = [int(v) if isinstance(v, (int, float)) else 0 for v in slots]
-        if len(free) != SLOTS_PER_DAY:
-            raise RuntimeError(
-                f"Row {counter_row}: got {len(free)} slots, expected {SLOTS_PER_DAY}"
-            )
         days.append({
-            "date": date_val.strftime("%Y-%m-%d"),
-            "weekday": SK_WEEKDAYS[date_val.weekday()],
+            "date": first_col.strftime("%Y-%m-%d"),
+            "weekday": SK_WEEKDAYS[first_col.weekday()],
             "free": free,
         })
-        date_row += ROWS_PER_DAY
+        date_idx += ROWS_PER_DAY
 
     if not days:
         raise RuntimeError(f"No day rows found in {xlsx_path}")
