@@ -496,13 +496,22 @@ function setupGridTooltip() {
   tip.hidden = true;
   wrap.appendChild(tip);
 
-  const hide = () => { tip.hidden = true; tip.dataset.forCell = ""; };
+  const clearSelected = () => {
+    wrap.querySelectorAll(".cell.selected").forEach(el => el.classList.remove("selected"));
+  };
+  const hide = () => {
+    tip.hidden = true;
+    tip.dataset.forCell = "";
+    clearSelected();
+  };
 
   wrap.addEventListener("click", (e) => {
     const cell = e.target.closest(".cell[data-date]");
     if (!cell) { hide(); return; }
     const key = `${cell.dataset.date}:${cell.dataset.col}`;
     if (!tip.hidden && tip.dataset.forCell === key) { hide(); return; }
+    clearSelected();
+    cell.classList.add("selected");
     tip.textContent = cell.title || "";
     tip.hidden = false;
     tip.dataset.forCell = key;
