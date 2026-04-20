@@ -1,4 +1,4 @@
-# STARZ Pasienky — voľné dráhy
+# STARZ Pools Pasienky
 
 <p align="center">
   <a href="https://dscibrany.github.io/starzpools/"><img alt="Naživo: dscibrany.github.io/starzpools" src="https://img.shields.io/badge/Naživo-dscibrany.github.io%2Fstarzpools-10b981?style=for-the-badge&logo=github&logoColor=white"></a>
@@ -96,7 +96,7 @@ to len ako zoznam vecí, ktoré dávajú zmysel, ak sa projekt bude rozvíjať.
 
 - [x] ~~**PWA** — `manifest.json` + service worker, aby sa dala stránka
       „pridať na plochu" a fungovala offline s poslednými staženými dátami.~~
-      (hotovo — nazvaná **STARZ Pools**, ikony v `icons/`, `sw.js` so
+      (hotovo — nazvaná **STARZ Pools**, ikony v `icons/`, `sw.js` s
       cache-first stratégiou pre statické assety a network-first pre JSON.)
 - [ ] **Obľúbené sloty** — uložené do `localStorage`, s indikátorom pri
       riadku v heatmape a v karte „Dnes".
