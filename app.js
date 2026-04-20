@@ -53,6 +53,7 @@ async function load() {
   setupTheme();
   setupFinder();
   setupLinks();
+  setupGridTooltip();
   renderPricingStaleBanner();
   renderPricing();
   render();
@@ -483,6 +484,49 @@ function renderHeatmap(now, data) {
   }
 
   renderLegend(data.maxLanes);
+  const tip = document.getElementById("grid-tooltip");
+  if (tip) { tip.hidden = true; tip.dataset.forCell = ""; }
+}
+
+function setupGridTooltip() {
+  const wrap = document.querySelector(".grid-wrap");
+  if (!wrap) return;
+  const tip = document.createElement("div");
+  tip.id = "grid-tooltip";
+  tip.hidden = true;
+  wrap.appendChild(tip);
+
+  const hide = () => { tip.hidden = true; tip.dataset.forCell = ""; };
+
+  wrap.addEventListener("click", (e) => {
+    const cell = e.target.closest(".cell[data-date]");
+    if (!cell) { hide(); return; }
+    const key = `${cell.dataset.date}:${cell.dataset.col}`;
+    if (!tip.hidden && tip.dataset.forCell === key) { hide(); return; }
+    tip.textContent = cell.title || "";
+    tip.hidden = false;
+    tip.dataset.forCell = key;
+    requestAnimationFrame(() => {
+      const cr = cell.getBoundingClientRect();
+      const wr = wrap.getBoundingClientRect();
+      const tipW = tip.offsetWidth;
+      const tipH = tip.offsetHeight;
+      let left = cr.left - wr.left + wrap.scrollLeft + cr.width / 2 - tipW / 2;
+      const maxLeft = wrap.scrollLeft + wrap.clientWidth - tipW - 6;
+      left = Math.max(wrap.scrollLeft + 6, Math.min(left, maxLeft));
+      let top = cr.top - wr.top + wrap.scrollTop - tipH - 8;
+      if (top < wrap.scrollTop + 2) top = cr.bottom - wr.top + wrap.scrollTop + 8;
+      tip.style.left = left + "px";
+      tip.style.top = top + "px";
+    });
+  });
+
+  document.addEventListener("click", (e) => {
+    if (tip.hidden) return;
+    if (!e.target.closest(".grid-wrap")) hide();
+  });
+  wrap.addEventListener("scroll", hide, { passive: true });
+  window.addEventListener("resize", hide);
 }
 
 function levelFor(raw, max) {
