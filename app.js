@@ -83,7 +83,7 @@ function renderPricingStaleBanner() {
 }
 
 function applyTheme(name) {
-  if (!THEMES.includes(name)) name = "viridis";
+  if (!THEMES.includes(name)) name = "traffic";
   state.theme = name;
   document.body.classList.remove(...THEMES.map(t => "theme-" + t));
   document.body.classList.add("theme-" + name);
@@ -93,7 +93,7 @@ function applyTheme(name) {
 function setupTheme() {
   let saved = null;
   try { saved = localStorage.getItem("starz-theme"); } catch {}
-  applyTheme(saved || "viridis");
+  applyTheme(saved || "traffic");
   const sel = document.getElementById("theme");
   if (sel) {
     sel.value = state.theme;
