@@ -1,5 +1,7 @@
 # STARZ Pasienky — voľné dráhy
 
+**Naživo:** <https://dscibrany.github.io/starzpools/>
+
 Jednoduchý statický dashboard, ktorý vizualizuje počet voľných dráh pre
 verejnosť v Mestskej plavárni Pasienky (STARZ Bratislava) v 15-minútových
 blokoch na 14 dní dopredu. Podporuje **25 m aj 50 m bazén**.
