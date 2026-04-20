@@ -141,11 +141,8 @@ function bandForMinOnDate(iso, minOfDay) {
     if (def.workdayOnly && !workday) continue;
     if (inRange(def.ranges)) return name;
   }
-  if (!workday) {
-    for (const [name, def] of Object.entries(p.bands)) {
-      if (def.workdayOnly) continue;
-      if (inRange(def.ranges)) return name;
-    }
+  for (const [name, def] of Object.entries(p.bands)) {
+    if (!def.workdayOnly) return name;
   }
   return "outside";
 }
@@ -364,9 +361,8 @@ function renderNow(now, data) {
   const chip = document.getElementById("band-chip");
   const pricesBox = document.getElementById("now-prices");
 
-  renderBandChip(chip, bandForDate(now));
-
   if (!day) {
+    renderBandChip(chip, "outside");
     card.classList.remove("live");
     pill.textContent = "Mimo rozvrhu";
     pill.className = "pill";
@@ -381,6 +377,8 @@ function renderNow(now, data) {
   const startMin = toMin(data.dayStart);
   const slot = data.slotMinutes;
   const currentFree = (idx >= 0 && idx < day.free.length) ? day.free[idx] : 0;
+  const band = currentFree > 0 ? bandForDate(now) : "outside";
+  renderBandChip(chip, band);
 
   big.innerHTML = `${currentFree}<span class="of"> / ${data.maxLanes}</span>`;
   if (currentFree > 0) {
@@ -396,7 +394,7 @@ function renderNow(now, data) {
     sub.textContent = "pre verejnosť práve nie sú k dispozícii dráhy";
   }
 
-  renderNowPrices(pricesBox, bandForDate(now));
+  renderNowPrices(pricesBox, band);
 
   let nextIdx = -1;
   const startSearch = Math.max(0, idx + (currentFree === 0 ? 0 : 1));
