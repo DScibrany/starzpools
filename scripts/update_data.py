@@ -159,17 +159,17 @@ def _href_interesting(href: str) -> bool:
 
 
 def _matches_xlsx(text_low: str, href_low: str) -> bool:
-    """STARZ schedule XLSX. Primary: text says 'rozpis' + one of
-    voľn/plavec/dráh. Fallback: href looks like an XLSX or SharePoint file,
-    which is what the current link resolves to (tokens rotate, wording does
-    not always)."""
+    """STARZ schedule workbook candidate. SharePoint URLs are opaque
+    (`/:x:/t/<site>/IQ...`) and the anchor text is now a generic
+    "Prejsť na stránku", so the strongest signal is the href: either a
+    direct `.xlsx` or a SharePoint Excel share (`/:x:/`)."""
     if "rozpis" in text_low and (
         "voľn" in text_low or "plavec" in text_low or "dráh" in text_low
     ):
         return True
     if ".xlsx" in href_low:
         return True
-    if "sharepoint.com" in href_low and ("rezerv" in href_low or "verejnost" in href_low):
+    if "sharepoint.com" in href_low and "/:x:/" in href_low:
         return True
     return False
 
@@ -193,14 +193,18 @@ def _matches_pdf(text_low: str, href_low: str) -> bool:
 
 
 def discover_links(page_url: str) -> dict:
-    """Return {'xlsx': url | None, 'pdf': url | None, 'pdf_text': str | None,
-    'candidates': [...]}.  ``candidates`` lists every anchor we considered so
-    failures print something actionable instead of a bare "not found".
+    """Return {'xlsx_urls': [url, ...], 'pdf': url | None,
+    'pdf_text': str | None, 'candidates': [...]}.
+
+    The page lists multiple SharePoint workbooks (25 m + 50 m on the same
+    page) behind generic "Prejsť na stránku" buttons, so the anchor text is
+    no longer a reliable discriminator. Return every XLSX-looking URL we
+    find; the caller picks the right one by reading the workbook's title.
     """
     _require(BeautifulSoup, "beautifulsoup4")
     html = _http_get(page_url).text
     soup = BeautifulSoup(html, "html.parser")
-    xlsx_url = None
+    xlsx_urls: list[str] = []
     pdf_url = None
     pdf_text = None
     candidates = []
@@ -213,13 +217,13 @@ def discover_links(page_url: str) -> dict:
         text_low = text.lower()
         href_low = abs_url.lower()
         candidates.append({"text": text, "href": abs_url})
-        if xlsx_url is None and _matches_xlsx(text_low, href_low):
-            xlsx_url = abs_url
+        if _matches_xlsx(text_low, href_low) and abs_url not in xlsx_urls:
+            xlsx_urls.append(abs_url)
         if pdf_url is None and _matches_pdf(text_low, href_low):
             pdf_url = abs_url
             pdf_text = text
     return {
-        "xlsx": xlsx_url,
+        "xlsx_urls": xlsx_urls,
         "pdf": pdf_url,
         "pdf_text": pdf_text,
         "candidates": candidates,
@@ -236,6 +240,50 @@ def _download_binary(url: str, dest: Path) -> Path:
     return dest
 
 
+# Row-2 of the Verejnost sheet contains a human-readable title, e.g.
+# "Otváracie hodiny pre verejnosť na 25 m bazéne …". The pool is the only
+# reliable discriminator between the two workbooks linked on each page.
+_POOL_TITLE_MARKER = {"25m": "25 m bazén", "50m": "50 m bazén"}
+
+
+def _sharepoint_download_url(url: str) -> str:
+    """SharePoint share links serve an HTML viewer by default; append
+    ``download=1`` so the server returns the raw XLSX."""
+    if "sharepoint.com" not in url.lower():
+        return url
+    if re.search(r"[?&]download=1(?:&|$)", url):
+        return url
+    sep = "&" if "?" in url else "?"
+    return f"{url}{sep}download=1"
+
+
+def _fetch_xlsx_bytes(url: str) -> bytes:
+    resp = _http_get(_sharepoint_download_url(url))
+    return resp.content
+
+
+def _workbook_pool_tag(xlsx_bytes: bytes) -> str | None:
+    """Return '25m' / '50m' if the workbook's title matches, else None."""
+    try:
+        wb = openpyxl.load_workbook(
+            io.BytesIO(xlsx_bytes), data_only=True, read_only=True
+        )
+    except Exception:
+        return None
+    if "Verejnost" not in wb.sheetnames:
+        return None
+    ws = wb["Verejnost"]
+    for row in ws.iter_rows(min_row=1, max_row=6, values_only=True):
+        for value in row:
+            if not isinstance(value, str):
+                continue
+            low = value.lower()
+            for tag, marker in _POOL_TITLE_MARKER.items():
+                if marker in low:
+                    return tag
+    return None
+
+
 def fetch_sources() -> dict:
     """Download XLSX for both pools and the current pricing PDF.
 
@@ -244,23 +292,69 @@ def fetch_sources() -> dict:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     report = {"pools": {}, "pricing": {}}
 
+    # Each pool page lists multiple SharePoint workbooks (25 m + 50 m);
+    # download each candidate once and key the cache by URL, then map pool→URL
+    # by reading the workbook title.
+    xlsx_by_pool: dict[str, str] = {}
+    xlsx_cache: dict[str, bytes] = {}
+    pool_page_info: dict[str, dict] = {}
+
     for pool, page_url in POOL_PAGES.items():
         info = discover_links(page_url)
-        if not info["xlsx"]:
+        pool_page_info[pool] = info
+        if not info["xlsx_urls"]:
             cands = info.get("candidates", [])
             interesting = [c for c in cands if _href_interesting(c["href"])]
             to_show = interesting if interesting else cands
             formatted = [f"{c['text']!r} -> {c['href']}" for c in to_show[:40]]
             raise RuntimeError(
-                f"Could not find the XLSX link on {page_url}. "
+                f"No XLSX-looking links on {page_url}. "
                 f"Saw {len(cands)} anchors, {len(interesting)} with interesting href. "
                 f"Showing up to 40:\n  " + "\n  ".join(formatted)
             )
-        report["pools"][pool] = {k: v for k, v in info.items() if k != "candidates"}
-        _download_binary(info["xlsx"], XLSX_FILES[pool])
+        for url in info["xlsx_urls"]:
+            if url in xlsx_cache:
+                continue
+            try:
+                data = _fetch_xlsx_bytes(url)
+            except Exception as e:
+                print(f"[fetch] {url}: download failed ({e})", file=sys.stderr)
+                continue
+            tag = _workbook_pool_tag(data)
+            if tag is None:
+                print(
+                    f"[fetch] {url}: not a Verejnost workbook (missing "
+                    f"sheet or title marker)",
+                    file=sys.stderr,
+                )
+                continue
+            xlsx_cache[url] = data
+            # First workbook wins for each pool; duplicates are ignored.
+            xlsx_by_pool.setdefault(tag, url)
+
+    missing = [p for p in POOL_PAGES if p not in xlsx_by_pool]
+    if missing:
+        tried = []
+        for pool, info in pool_page_info.items():
+            tried.append(f"{pool} page saw: {info['xlsx_urls']}")
+        raise RuntimeError(
+            f"Could not identify workbook(s) for pool(s): {missing}. "
+            + " | ".join(tried)
+        )
+
+    for pool, url in xlsx_by_pool.items():
+        XLSX_FILES[pool].parent.mkdir(parents=True, exist_ok=True)
+        XLSX_FILES[pool].write_bytes(xlsx_cache[url])
+        page_info = pool_page_info.get(pool, {})
+        report["pools"][pool] = {
+            "xlsx": url,
+            "pdf": page_info.get("pdf"),
+            "pdf_text": page_info.get("pdf_text"),
+            "xlsx_candidates": page_info.get("xlsx_urls", []),
+        }
 
     # Pricing PDF — discover on the 25m page (same PDF on both).
-    pdf_info = report["pools"]["25m"]
+    pdf_info = pool_page_info.get("25m", {})
     pdf_url = pdf_info.get("pdf")
     report["pricing"]["url"] = pdf_url
     report["pricing"]["source_page"] = POOL_PAGES["25m"]
