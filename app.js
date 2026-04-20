@@ -476,7 +476,7 @@ function renderHeatmap(now, data) {
         if (c === nowEnd) el.classList.add("now-end");
       }
       const s = startMin + c * slot;
-      el.title = `${day.weekday} ${d}.${m}. · ${fmt(s)}–${fmt(s + slot)} · ${raw === 0 ? "—" : raw + " / " + data.maxLanes + " dráh"}`;
+      el.title = `${day.weekday} ${d}.${m}. · ${fmt(s)}–${fmt(s + slot)} · ${raw === 0 ? "žiadne voľné dráhy" : raw + " / " + data.maxLanes + " dráh"}`;
       el.dataset.date = day.date;
       el.dataset.col = String(c);
       grid.appendChild(el);
