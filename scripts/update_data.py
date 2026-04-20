@@ -143,6 +143,55 @@ def _http_get(url: str, **kw) -> "requests.Response":
     raise RuntimeError(f"GET {url} failed after {_HTTP_ATTEMPTS} attempts: {last_err}")
 
 
+def _href_interesting(href: str) -> bool:
+    """Heuristic for anchors worth logging when discovery fails — filters out
+    nav / utility links so the error preview shows file links only."""
+    h = href.lower()
+    return any(
+        tok in h
+        for tok in (
+            "sharepoint", "onedrive", "dropbox",
+            "s3.bratislava.sk", "s3.amazonaws", "cdn.",
+            ".xlsx", ".xls", ".pdf", ".docx",
+            "rezerv", "rozpis", "verejnost", "cennik",
+        )
+    )
+
+
+def _matches_xlsx(text_low: str, href_low: str) -> bool:
+    """STARZ schedule XLSX. Primary: text says 'rozpis' + one of
+    voľn/plavec/dráh. Fallback: href looks like an XLSX or SharePoint file,
+    which is what the current link resolves to (tokens rotate, wording does
+    not always)."""
+    if "rozpis" in text_low and (
+        "voľn" in text_low or "plavec" in text_low or "dráh" in text_low
+    ):
+        return True
+    if ".xlsx" in href_low:
+        return True
+    if "sharepoint.com" in href_low and ("rezerv" in href_low or "verejnost" in href_low):
+        return True
+    return False
+
+
+def _matches_pdf(text_low: str, href_low: str) -> bool:
+    """Cenník PDF. Tolerate both diacritic spellings and the lowercase 'cennik'
+    that appears in S3 object keys."""
+    looks_like_pdf = (
+        href_low.endswith(".pdf")
+        or ".pdf?" in href_low
+        or "s3.bratislava.sk" in href_low
+    )
+    if not looks_like_pdf:
+        return False
+    return (
+        text_low.startswith("cenník")
+        or "cenník" in text_low
+        or "cennik" in text_low
+        or "cennik" in href_low
+    )
+
+
 def discover_links(page_url: str) -> dict:
     """Return {'xlsx': url | None, 'pdf': url | None, 'pdf_text': str | None,
     'candidates': [...]}.  ``candidates`` lists every anchor we considered so
@@ -158,14 +207,15 @@ def discover_links(page_url: str) -> dict:
     for a in soup.find_all("a", href=True):
         text = " ".join(a.get_text(" ", strip=True).split())
         href = a["href"]
-        if not href:
+        if not href or href.startswith("#") or href.startswith("javascript:"):
             continue
         abs_url = urllib.parse.urljoin(page_url, href)
-        low = text.lower()
+        text_low = text.lower()
+        href_low = abs_url.lower()
         candidates.append({"text": text, "href": abs_url})
-        if xlsx_url is None and "časový rozpis" in low and "voľn" in low:
+        if xlsx_url is None and _matches_xlsx(text_low, href_low):
             xlsx_url = abs_url
-        if pdf_url is None and low.startswith("cenník"):
+        if pdf_url is None and _matches_pdf(text_low, href_low):
             pdf_url = abs_url
             pdf_text = text
     return {
@@ -197,11 +247,14 @@ def fetch_sources() -> dict:
     for pool, page_url in POOL_PAGES.items():
         info = discover_links(page_url)
         if not info["xlsx"]:
-            preview = [c["text"] for c in info.get("candidates", []) if c["text"]][:20]
+            cands = info.get("candidates", [])
+            interesting = [c for c in cands if _href_interesting(c["href"])]
+            to_show = interesting if interesting else cands
+            formatted = [f"{c['text']!r} -> {c['href']}" for c in to_show[:40]]
             raise RuntimeError(
-                f"Could not find the 'Časový rozpis…' link on {page_url}. "
-                f"Saw {len(info.get('candidates', []))} anchors; "
-                f"first 20 link texts: {preview!r}"
+                f"Could not find the XLSX link on {page_url}. "
+                f"Saw {len(cands)} anchors, {len(interesting)} with interesting href. "
+                f"Showing up to 40:\n  " + "\n  ".join(formatted)
             )
         report["pools"][pool] = {k: v for k, v in info.items() if k != "candidates"}
         _download_binary(info["xlsx"], XLSX_FILES[pool])
