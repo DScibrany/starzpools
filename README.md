@@ -152,19 +152,44 @@ to len ako zoznam vecí, ktoré dávajú zmysel, ak sa projekt bude rozvíjať.
 - [ ] **Trend citlivý na sviatky** — sviatky momentálne ťahajú dole
       priemer daného dňa týždňa. `pricing.json.holidays` je už dostupné,
       stačí ich odfiltrovať v `scripts/compute_trend.py`.
-- [ ] **Golden-file test scrapera** — stale-banner rieši následok, ale
+- [x] ~~**Golden-file test scrapera** — stale-banner rieši následok, ale
       CI test, ktorý padne pri zmene štruktúry XLSX, by chytil problém
-      skôr než sa dáta zastarajú. Malý test, veľká hodnota.
-- [ ] **Zachovať posledné známe dáta pri stale** — namiesto „bez dát"
-      ponechať vykreslenie heatmapy/karty a zobraziť len banner navrchu.
+      skôr než sa dáta zastarajú. Malý test, veľká hodnota.~~
+      (hotovo — `tests/test_update_data.py` generuje synthetic XLSX cez
+      `openpyxl`, pretláča ich cez `transform_xlsx()` a kontroluje, že
+      (a) výstupný JSON má stabilný tvar a (b) zmena štruktúry (premenovaný
+      label „Počet voľných dráh", chýbajúci counter row, skrátený
+      workbook) padne s čitateľnou `RuntimeError`. Beží v
+      `.github/workflows/tests.yml`.)
+- [x] ~~**Zachovať posledné známe dáta pri stale** — namiesto „bez dát"
+      ponechať vykreslenie heatmapy/karty a zobraziť len banner navrchu.~~
+      (hotovo — každý úspešný `fetchJSON` zapíše JSON do `localStorage`
+      pod kľúč `starz-cache:<path>`; pri zlyhaní fetch-u `fetchJSONWithCache`
+      načíta poslednú známu verziu. Stale-banner na vrchu funguje naďalej
+      podľa `data.updated`, len heatmapa/karta sa teraz vykreslia z cache
+      namiesto vyprázdnenia. Vrství sa čisto nad existujúci service worker,
+      ktorý už robí network-first pre JSON.)
 - [ ] **Odber kalendára (`subscribe.ics`)** — denne generovaný ICS feed
       so všetkými verejnými blokmi na 14 dní; jedno-klikové „Pridať do
       Google kalendára" miesto per-blok ICS.
-- [ ] **OG image pre zdieľanie** — dnešná share karta pred-renderovaná
-      ako PNG cez GitHub Action pre náhľad na Slacku/Messengeri.
-- [ ] **Testy čistých funkcií** — `collapseBlocks`, `levelFor`,
+- [x] ~~**OG image pre zdieľanie** — dnešná share karta pred-renderovaná
+      ako PNG cez GitHub Action pre náhľad na Slacku/Messengeri.~~
+      (hotovo — `scripts/generate_og.py` (Pillow) renderuje 1200×630 PNG
+      z `schedule-50m.json`: značka, dnešný dátum, verejné bloky dňa
+      farebne kódované podľa pomeru voľných dráh, footer s URL a dátumom
+      aktualizácie. Workflow `update-data.yml` ho denne prepočíta a
+      commitne `og.png`. `index.html` má `og:title/description/url/image`
+      a `twitter:card=summary_large_image`, takže Slack/Messenger/LinkedIn
+      ukazujú aktuálny dnešný plán.)
+- [x] ~~**Testy čistých funkcií** — `collapseBlocks`, `levelFor`,
       `bandForMinOnDate`, `scheduleAgeDays` sú čisté a triviálne pokryť.
-      Odomkne bezpečný refactor.
+      Odomkne bezpečný refactor.~~
+      (hotovo — čisté helpery (`pad`, `toMin`, `fmt`, `todayISO`,
+      `collapseBlocks`, `levelFor`, `scheduleAgeDays`, `icsEscape`,
+      `icsUTCStamp`) sú v `lib/helpers.js` ako dual-module (IIFE s
+      `module.exports` alebo `window`), `tests/helpers.test.mjs`
+      pokrýva 14 prípadov cez node's vstavaný `node --test`. Beží v
+      `.github/workflows/tests.yml`.)
 - [ ] **Rozdeliť `app.js`** — ~1700 riadkov; ES moduly (render / data /
       watcher / i18n) by zlepšili orientáciu.
 - [x] ~~**A11y audit** — ARIA role pre heatmap-cells, klávesová navigácia

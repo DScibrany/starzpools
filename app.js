@@ -45,31 +45,10 @@ const POOL_PAGE = {
 };
 const POOL_FILE = { "25m": "schedule.json", "50m": "schedule-50m.json" };
 
-const toMin = (hhmm) => {
-  const [h, m] = hhmm.split(":").map(Number);
-  return h * 60 + m;
-};
-const fmt = (min) => {
-  const h = String(Math.floor((min % 1440) / 60)).padStart(2, "0");
-  const m = String(min % 60).padStart(2, "0");
-  return `${h}:${m}`;
-};
-const pad = (n) => String(n).padStart(2, "0");
 const lanesWord = (n) => {
   if (CURRENT_LANG === "en") return n === 1 ? "lane" : "lanes";
   return (n === 1 ? "dráha" : n >= 2 && n <= 4 ? "dráhy" : "dráh");
 };
-const todayISO = (d = new Date()) =>
-  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-
-function icsEscape(s) {
-  return String(s).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
-}
-function icsUTCStamp(d) {
-  return d.getUTCFullYear().toString()
-    + pad(d.getUTCMonth() + 1) + pad(d.getUTCDate()) + "T"
-    + pad(d.getUTCHours()) + pad(d.getUTCMinutes()) + pad(d.getUTCSeconds()) + "Z";
-}
 function buildICS({ iso, startMin, endMin, lanes, pool }) {
   const [y, mo, d] = iso.split("-").map(Number);
   const sh = Math.floor(startMin / 60), sm = startMin % 60;
@@ -132,10 +111,33 @@ const state = {
   favorites: [],
 };
 
+const CACHE_PREFIX = "starz-cache:";
+
+function saveCache(path, json) {
+  try { localStorage.setItem(CACHE_PREFIX + path, JSON.stringify(json)); } catch {}
+}
+
+function loadCache(path) {
+  try {
+    const raw = localStorage.getItem(CACHE_PREFIX + path);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
 async function fetchJSON(path) {
   const res = await fetch(path, { cache: "no-store" });
   if (!res.ok) throw new Error(`${path}: ${res.status}`);
-  return res.json();
+  const json = await res.json();
+  saveCache(path, json);
+  return json;
+}
+
+async function fetchJSONWithCache(path) {
+  try {
+    return await fetchJSON(path);
+  } catch {
+    return loadCache(path);
+  }
 }
 
 if ("serviceWorker" in navigator) {
@@ -157,10 +159,10 @@ async function load() {
   await loadI18n();
   initLang();
   const [d25, d50, pricing, trend] = await Promise.all([
-    fetchJSON(POOL_FILE["25m"]).catch(() => null),
-    fetchJSON(POOL_FILE["50m"]).catch(() => null),
-    fetchJSON("pricing.json").catch(() => null),
-    fetchJSON("trend.json").catch(() => null),
+    fetchJSONWithCache(POOL_FILE["25m"]),
+    fetchJSONWithCache(POOL_FILE["50m"]),
+    fetchJSONWithCache("pricing.json"),
+    fetchJSONWithCache("trend.json"),
   ]);
   state.data["25m"] = d25;
   state.data["50m"] = d50;
@@ -312,21 +314,12 @@ function updateURLFromState() {
 
 const SCHEDULE_STALE_DAYS = 3;
 
-function scheduleAgeDays(data, now) {
-  if (!data?.updated) return null;
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(data.updated);
-  if (!m) return null;
-  const upd = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return Math.floor((today - upd) / 86400000);
-}
-
 function renderScheduleStaleBanner(data, now) {
   const el = document.getElementById("schedule-stale");
   if (!el) return;
   const page = POOL_PAGE[state.pool];
   const missing = !data || !Array.isArray(data.days) || data.days.length === 0;
-  const age = scheduleAgeDays(data, now);
+  const age = scheduleAgeDays(data?.updated, now);
   const stale = !missing && age != null && age >= SCHEDULE_STALE_DAYS;
   if (!missing && !stale) {
     el.hidden = true;
@@ -609,23 +602,6 @@ function slotIndexForNow(data) {
 }
 
 function findDay(data, iso) { return data.days.find(d => d.date === iso); }
-
-function collapseBlocks(free, slotMinutes, startMin) {
-  const blocks = [];
-  let i = 0;
-  while (i < free.length) {
-    if (free[i] === 0) { i++; continue; }
-    let j = i;
-    while (j < free.length && free[j] === free[i]) j++;
-    blocks.push({
-      startMin: startMin + i * slotMinutes,
-      endMin: startMin + j * slotMinutes,
-      lanes: free[i],
-    });
-    i = j;
-  }
-  return blocks;
-}
 
 function render() {
   const data = activeData();
@@ -922,15 +898,6 @@ function setupGridTooltip() {
   });
   wrap.addEventListener("scroll", hide, { passive: true });
   window.addEventListener("resize", hide);
-}
-
-function levelFor(raw, max) {
-  if (raw <= 0) return 0;
-  const r = raw / max;
-  if (r <= 0.25) return 1;
-  if (r <= 0.5) return 2;
-  if (r <= 0.75) return 3;
-  return 4;
 }
 
 function renderLegend(max) {
