@@ -762,6 +762,14 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
   flex-wrap: wrap;
 }
 .pricing-stale[hidden] { display: none; }
+.schedule-stale {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.55);
+  color: #fecaca;
+}
+.schedule-stale strong { color: #fee2e2; }
+.schedule-stale a { color: #fecaca; }
+.schedule-stale a:hover { color: #fff1f2; }
 .pricing-stale strong { color: #fde68a; }
 .pricing-stale a { color: #fcd34d; text-decoration: underline; }
 .pricing-stale a:hover { color: #fff7ed; }
