@@ -116,8 +116,11 @@ to len ako zoznam vecí, ktoré dávajú zmysel, ak sa projekt bude rozvíjať.
       formát `schedule*.json`, len s iným pool-tabom.
 - [ ] **A11y audit** — ARIA role pre heatmap-cells, klávesová navigácia
       po bunkách, kontrast tmavých farieb v Semafore.
-- [ ] **Zdieľanie odkazu** — URL s parametrami `?date=…&from=…&lanes=…`,
-      ktorá otvorí dashboard s predvyplneným vyhľadávačom.
+- [x] ~~**Zdieľanie odkazu** — URL s parametrami `?date=…&from=…&lanes=…`,
+      ktorá otvorí dashboard s predvyplneným vyhľadávačom.~~
+      (hotovo — vyhľadávač sa synchronizuje s URL cez `pool`, `date`, `from`,
+      `lanes`, `len`, `today`; tlačidlo „Skopírovať odkaz" vloží aktuálny
+      URL do schránky.)
 - [ ] **Print/share karta** — „dnešný plán" ako jedna obrazovka
       optimalizovaná na screenshot do chatu.
 - [ ] **Automatické mazanie stale Pages environment branches** — keď

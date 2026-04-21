@@ -60,6 +60,9 @@
           <span class="finder-hint">kliknite pre vyhľadávanie voľných blokov</span>
         </summary>
         <div class="finder-row">
+          <label>Dátum
+            <input type="date" id="finder-date" />
+          </label>
           <label>Od
             <input type="time" id="finder-from" step="900" />
           </label>
@@ -81,6 +84,7 @@
             <input type="checkbox" id="finder-today" /> Iba dnes
           </label>
           <button id="finder-run" type="button">Vyhľadať</button>
+          <button id="finder-share" type="button" class="secondary" title="Skopírovať odkaz s aktuálnym vyhľadávaním">Skopírovať odkaz</button>
         </div>
         <div id="finder-results" class="finder-results"></div>
       </details>

@@ -54,6 +54,7 @@ async function load() {
   state.data["50m"] = d50;
   state.pricing = pricing;
 
+  applyPoolFromURL();
   setupViews();
   setupTabs();
   setupTheme();
@@ -63,7 +64,65 @@ async function load() {
   renderPricingStaleBanner();
   renderPricing();
   render();
+  applyFinderFromURL();
   setInterval(render, 30_000);
+}
+
+function applyPoolFromURL() {
+  const pool = new URLSearchParams(location.search).get("pool");
+  if (pool === "25m" || pool === "50m") state.pool = pool;
+  document.querySelectorAll(".pool-tab").forEach(x => {
+    const active = x.dataset.pool === state.pool;
+    x.classList.toggle("active", active);
+    x.setAttribute("aria-selected", active ? "true" : "false");
+  });
+}
+
+function applyFinderFromURL() {
+  const params = new URLSearchParams(location.search);
+  const from = params.get("from");
+  const lanes = params.get("lanes");
+  const len = params.get("len");
+  const date = params.get("date");
+  const today = params.get("today");
+  if (!from && !lanes && !len && !date && !today) return;
+
+  if (from && /^\d{2}:\d{2}$/.test(from)) {
+    document.getElementById("finder-from").value = from;
+  }
+  if (lanes && ["1","2","3","4"].includes(lanes)) {
+    document.getElementById("finder-min").value = lanes;
+  }
+  if (len && ["60","90"].includes(len)) {
+    document.getElementById("finder-len").value = len;
+  }
+  if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    document.getElementById("finder-date").value = date;
+  }
+  if (today === "1") {
+    document.getElementById("finder-today").checked = true;
+  }
+  const details = document.querySelector(".finder");
+  if (details) details.open = true;
+  runFinder();
+}
+
+function updateURLFromState() {
+  const params = new URLSearchParams();
+  if (state.pool !== "50m") params.set("pool", state.pool);
+  const from = document.getElementById("finder-from")?.value;
+  const minSel = document.getElementById("finder-min")?.value;
+  const lenSel = document.getElementById("finder-len")?.value;
+  const dateVal = document.getElementById("finder-date")?.value;
+  const todayChk = document.getElementById("finder-today")?.checked;
+  if (from) params.set("from", from);
+  if (minSel && minSel !== "1") params.set("lanes", minSel);
+  if (lenSel && lenSel !== "60") params.set("len", lenSel);
+  if (dateVal) params.set("date", dateVal);
+  if (todayChk && !dateVal) params.set("today", "1");
+  const qs = params.toString();
+  const url = location.pathname + (qs ? "?" + qs : "") + location.hash;
+  history.replaceState(null, "", url);
 }
 
 function renderPricingStaleBanner() {
@@ -266,6 +325,7 @@ function setupTabs() {
       document.getElementById("finder-results").innerHTML = "";
       renderPricing();
       render();
+      updateURLFromState();
     });
   });
 }
@@ -643,9 +703,36 @@ function setupFinder() {
   const nowRounded = Math.ceil((now.getHours() * 60 + now.getMinutes()) / 15) * 15;
   document.getElementById("finder-from").value = fmt(nowRounded);
   document.getElementById("finder-run").addEventListener("click", runFinder);
-  ["finder-from","finder-min","finder-len","finder-today"].forEach(id => {
+  ["finder-from","finder-min","finder-len","finder-today","finder-date"].forEach(id => {
     document.getElementById(id).addEventListener("change", runFinder);
   });
+  const todayChk = document.getElementById("finder-today");
+  const dateInp = document.getElementById("finder-date");
+  todayChk.addEventListener("change", () => {
+    if (todayChk.checked) dateInp.value = "";
+  });
+  dateInp.addEventListener("change", () => {
+    if (dateInp.value) todayChk.checked = false;
+  });
+  const share = document.getElementById("finder-share");
+  if (share) share.addEventListener("click", () => shareLink(share));
+}
+
+async function shareLink(btn) {
+  updateURLFromState();
+  const url = location.href;
+  try {
+    await navigator.clipboard.writeText(url);
+    const orig = btn.textContent;
+    btn.textContent = "Skopírované!";
+    btn.classList.add("copied");
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.classList.remove("copied");
+    }, 1800);
+  } catch {
+    window.prompt("Skopírujte odkaz:", url);
+  }
 }
 
 function runFinder() {
@@ -661,6 +748,7 @@ function runFinder() {
   const minLanes = Number(document.getElementById("finder-min").value);
   const lenMin = Number(document.getElementById("finder-len").value);
   const onlyToday = document.getElementById("finder-today").checked;
+  const onlyDate = document.getElementById("finder-date").value || "";
   const slot = data.slotMinutes;
   const startMin = toMin(data.dayStart);
   const need = Math.ceil(lenMin / slot);
@@ -671,6 +759,7 @@ function runFinder() {
   for (const day of data.days) {
     if (day.date < todayIso) continue;
     if (onlyToday && day.date !== todayIso) continue;
+    if (onlyDate && day.date !== onlyDate) continue;
     const isToday = day.date === todayIso;
     let i = 0;
     while (i < day.free.length) {
@@ -702,6 +791,7 @@ function runFinder() {
   state.finderHits = hits;
   renderFinderResults(hits);
   applyFinderHighlight();
+  updateURLFromState();
 }
 
 function renderFinderResults(hits) {
