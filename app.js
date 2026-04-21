@@ -77,6 +77,7 @@ async function load() {
   setupTheme();
   setupFinder();
   setupWatcher();
+  refreshLaneOptions();
   setupLinks();
   setupGridTooltip();
   renderPricingStaleBanner();
@@ -119,8 +120,9 @@ function applyFinderFromURL() {
   if (from && /^\d{2}:\d{2}$/.test(from)) {
     document.getElementById("finder-from").value = from;
   }
-  if (lanes && ["1","2","3","4"].includes(lanes)) {
-    document.getElementById("finder-min").value = lanes;
+  if (lanes && /^\d+$/.test(lanes)) {
+    const n = Math.max(1, Math.min(Number(lanes), activeMaxLanes()));
+    document.getElementById("finder-min").value = String(n);
   }
   if (len && ["60","90"].includes(len)) {
     document.getElementById("finder-len").value = len;
@@ -339,6 +341,27 @@ function priceChipHTML(pool, band, duration) {
 
 function activeData() { return state.data[state.pool]; }
 
+function activeMaxLanes() {
+  const n = activeData()?.maxLanes;
+  return Number.isFinite(n) && n > 0 ? n : 4;
+}
+
+function populateLaneOptions(sel, max, defaultValue) {
+  if (!sel) return;
+  const prev = sel.value;
+  const opts = [];
+  for (let i = 1; i <= max; i++) opts.push(`<option value="${i}">aspoň ${i}</option>`);
+  sel.innerHTML = opts.join("");
+  const keep = prev && Number(prev) >= 1 && Number(prev) <= max ? prev : String(Math.min(defaultValue ?? 1, max));
+  sel.value = keep;
+}
+
+function refreshLaneOptions() {
+  const max = activeMaxLanes();
+  populateLaneOptions(document.getElementById("finder-min"), max, 1);
+  populateLaneOptions(document.getElementById("watch-lanes"), max, Math.min(3, max));
+}
+
 function setupTabs() {
   const tabs = document.querySelectorAll(".pool-tab");
   tabs.forEach(t => {
@@ -352,6 +375,7 @@ function setupTabs() {
       setupLinks();
       state.finderHits = [];
       document.getElementById("finder-results").innerHTML = "";
+      refreshLaneOptions();
       renderPricing();
       render();
       updateURLFromState();
