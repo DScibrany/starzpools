@@ -842,9 +842,12 @@ function renderTodayBlocks(now, data) {
     const icsBtn = it.past ? "" :
       `<button type="button" class="ics-btn" title="Pridať do kalendára"
         data-iso="${day.date}" data-start="${b.startMin}" data-end="${b.endMin}" data-lanes="${b.lanes}">📅</button>`;
+    const dotsOn = "●".repeat(b.lanes);
+    const dotsOff = "○".repeat(Math.max(0, data.maxLanes - b.lanes));
     return `<li class="${cls}">
       <span class="time">${fmt(b.startMin)}–${fmt(b.endMin)}</span>
       <span class="lanes lane-${level}">${b.lanes} ${lanesWord(b.lanes)}</span>
+      <span class="dots lane-${level}" aria-hidden="true"><span class="on">${dotsOn}</span><span class="off">${dotsOff}</span></span>
       ${it.live ? '<span class="tag">prebieha</span>' : it.past ? '<span class="tag past">skončilo</span>' : ''}
       ${icsBtn}
     </li>`;
