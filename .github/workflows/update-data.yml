@@ -67,5 +67,19 @@ jobs:
             git commit -m "Trend refresh ${DATE} [skip ci]"
           fi
 
+      - name: Regenerate OG preview image
+        run: python scripts/generate_og.py
+
+      - name: Commit OG image update
+        run: |
+          set -e
+          if git diff --quiet -- og.png; then
+            echo "No OG image changes to commit."
+          else
+            git add og.png
+            DATE=$(date -u +'%Y-%m-%d')
+            git commit -m "OG preview refresh ${DATE} [skip ci]"
+          fi
+
       - name: Push
         run: git push
