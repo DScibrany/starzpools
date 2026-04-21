@@ -132,9 +132,15 @@ to len ako zoznam vecí, ktoré dávajú zmysel, ak sa projekt bude rozvíjať.
       agreguje priemery per (bazén, deň-v-týždni, 15-min slot) do
       `trend.json`. Workflow `update-data.yml` ho prepočítava denne. V UI
       je nová záložka **Trend** s 7×76 heatmapou priemernej voľnosti.)
-- [ ] **Robustnosť scrapera** — ak sa zmení štruktúra zdrojového
+- [x] ~~**Robustnosť scrapera** — ak sa zmení štruktúra zdrojového
       XLSX/HTML, dashboard by mal zobraziť banner „dáta môžu byť
-      neaktuálne" (podobne ako pri cenníku).
+      neaktuálne" (podobne ako pri cenníku).~~
+      (hotovo — `renderScheduleStaleBanner` skontroluje `schedule.updated`
+      aktívneho bazéna; ak je staršie ako 3 dni alebo dáta úplne chýbajú,
+      zobrazí sa červený pruh nad obsahom s odkazom na zdrojovú stránku.
+      Pokrýva oba prípady: pád scrapera a zmenu štruktúry XLSX — v oboch
+      sa `schedule*.json` prestane commitovať a banner sa spustí
+      automaticky.)
 - [ ] **Ďalšie STARZ bazény** — Rosnička, Delfín, Tehelné pole; rovnaký
       formát `schedule*.json`, len s iným pool-tabom.
 - [x] ~~**A11y audit** — ARIA role pre heatmap-cells, klávesová navigácia

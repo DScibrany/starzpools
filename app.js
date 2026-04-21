@@ -310,6 +310,40 @@ function updateURLFromState() {
   history.replaceState(null, "", url);
 }
 
+const SCHEDULE_STALE_DAYS = 3;
+
+function scheduleAgeDays(data, now) {
+  if (!data?.updated) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(data.updated);
+  if (!m) return null;
+  const upd = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.floor((today - upd) / 86400000);
+}
+
+function renderScheduleStaleBanner(data, now) {
+  const el = document.getElementById("schedule-stale");
+  if (!el) return;
+  const page = POOL_PAGE[state.pool];
+  const missing = !data || !Array.isArray(data.days) || data.days.length === 0;
+  const age = scheduleAgeDays(data, now);
+  const stale = !missing && age != null && age >= SCHEDULE_STALE_DAYS;
+  if (!missing && !stale) {
+    el.hidden = true;
+    el.innerHTML = "";
+    return;
+  }
+  const detail = missing
+    ? t("schedule.stale.missing")
+    : t("schedule.stale.days_old", { date: data.updated, days: age });
+  el.innerHTML = `
+    <strong>${t("schedule.stale.heading")}</strong>
+    <span>${detail}</span>
+    <a href="${page}" target="_blank" rel="noopener">${t("schedule.stale.open_page")}</a>
+  `;
+  el.hidden = false;
+}
+
 function renderPricingStaleBanner() {
   const el = document.getElementById("pricing-stale");
   if (!el) return;
@@ -603,6 +637,8 @@ function render() {
     });
   document.getElementById("updated").textContent =
     data?.updated ? t("footer.updated", { date: data.updated }) : "";
+
+  renderScheduleStaleBanner(data, now);
 
   if (!data || !data.days || data.days.length === 0) {
     renderEmpty();
