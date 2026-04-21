@@ -89,6 +89,49 @@
         <div id="finder-results" class="finder-results"></div>
       </details>
 
+      <details class="watcher" aria-label="Sledovanie voľných slotov">
+        <summary>
+          <span class="section-title">Sledovať voľný slot</span>
+          <span class="watcher-hint">notifikácia, keď sa uvoľní váš preferovaný čas</span>
+        </summary>
+        <div class="watcher-body">
+          <p id="watcher-note" class="watcher-note"></p>
+          <div class="watcher-row">
+            <label>Deň
+              <select id="watch-day">
+                <option value="any">ľubovoľný</option>
+                <option value="pondelok">pondelok</option>
+                <option value="utorok">utorok</option>
+                <option value="streda">streda</option>
+                <option value="štvrtok">štvrtok</option>
+                <option value="piatok">piatok</option>
+                <option value="sobota">sobota</option>
+                <option value="nedeľa">nedeľa</option>
+              </select>
+            </label>
+            <label>Od
+              <input type="time" id="watch-from" step="900" value="18:00" />
+            </label>
+            <label>Min. dráh
+              <select id="watch-lanes">
+                <option value="1">aspoň 1</option>
+                <option value="2">aspoň 2</option>
+                <option value="3" selected>aspoň 3</option>
+                <option value="4">aspoň 4</option>
+              </select>
+            </label>
+            <label>Dĺžka
+              <select id="watch-len">
+                <option value="60" selected>60 min</option>
+                <option value="90">90 min</option>
+              </select>
+            </label>
+            <button id="watch-add" type="button">Pridať upozornenie</button>
+          </div>
+          <ul id="watch-list" class="watch-list"></ul>
+        </div>
+      </details>
+
       <div class="grid-header">
         <h2 class="section-title">Dostupnosť po 15 minútach (14 dní)</h2>
         <label class="theme-pick">

@@ -102,8 +102,13 @@ to len ako zoznam vecí, ktoré dávajú zmysel, ak sa projekt bude rozvíjať.
       riadku v heatmape a v karte „Dnes".
 - [ ] **Export do kalendára** — tlačidlo „Pridať do kalendára" pri
       každom bloku/výsledku vyhľadávača (`.ics` link).
-- [ ] **Upozornenia** — opt-in web push, keď sa uvoľní vopred zvolený slot
-      (napr. „utorok 18:00, aspoň 3 dráhy").
+- [x] ~~**Upozornenia** — opt-in web push, keď sa uvoľní vopred zvolený slot
+      (napr. „utorok 18:00, aspoň 3 dráhy").~~
+      (hotovo — sekcia „Sledovať voľný slot": deň/čas/dráhy/dĺžka, watche sa
+      ukladajú do `localStorage`, `schedule.json` sa re-fetchne každých 5 min
+      a pri novej zhode sa pošle lokálna Notifikácia. Pravý „server push"
+      nie je možný bez back-endu, takže upozornenia chodia, kým je stránka
+      otvorená.)
 - [ ] **Anglická verzia** — jazykový prepínač (sk/en), texty vytiahnuté
       do `i18n.json`.
 - [ ] **Trend obsadenosti** — tab/panel s priemerom voľných dráh po
