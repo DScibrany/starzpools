@@ -111,10 +111,33 @@ const state = {
   favorites: [],
 };
 
+const CACHE_PREFIX = "starz-cache:";
+
+function saveCache(path, json) {
+  try { localStorage.setItem(CACHE_PREFIX + path, JSON.stringify(json)); } catch {}
+}
+
+function loadCache(path) {
+  try {
+    const raw = localStorage.getItem(CACHE_PREFIX + path);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
 async function fetchJSON(path) {
   const res = await fetch(path, { cache: "no-store" });
   if (!res.ok) throw new Error(`${path}: ${res.status}`);
-  return res.json();
+  const json = await res.json();
+  saveCache(path, json);
+  return json;
+}
+
+async function fetchJSONWithCache(path) {
+  try {
+    return await fetchJSON(path);
+  } catch {
+    return loadCache(path);
+  }
 }
 
 if ("serviceWorker" in navigator) {
@@ -136,10 +159,10 @@ async function load() {
   await loadI18n();
   initLang();
   const [d25, d50, pricing, trend] = await Promise.all([
-    fetchJSON(POOL_FILE["25m"]).catch(() => null),
-    fetchJSON(POOL_FILE["50m"]).catch(() => null),
-    fetchJSON("pricing.json").catch(() => null),
-    fetchJSON("trend.json").catch(() => null),
+    fetchJSONWithCache(POOL_FILE["25m"]),
+    fetchJSONWithCache(POOL_FILE["50m"]),
+    fetchJSONWithCache("pricing.json"),
+    fetchJSONWithCache("trend.json"),
   ]);
   state.data["25m"] = d25;
   state.data["50m"] = d50;
