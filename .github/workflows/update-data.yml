@@ -35,16 +35,37 @@ jobs:
       - name: Run update
         run: python scripts/update_data.py update
 
-      - name: Commit and push changes
+      - name: Commit data refresh
+        id: refresh
         run: |
           set -e
           git config user.name "starz-bot"
           git config user.email "starz-bot@users.noreply.github.com"
           if git diff --quiet -- schedule.json schedule-50m.json pricing.json data/starz/; then
-            echo "No changes to commit."
+            echo "No data changes to commit."
+            echo "committed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git add schedule.json schedule-50m.json pricing.json data/starz/
           DATE=$(date -u +'%Y-%m-%d')
           git commit -m "Data refresh ${DATE} [skip ci]"
-          git push
+          echo "committed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Recompute occupancy trend
+        # Needs git history; runs on any dispatch too so the frontend stays
+        # fresh even on days with no data changes.
+        run: python scripts/compute_trend.py 8
+
+      - name: Commit trend update
+        run: |
+          set -e
+          if git diff --quiet -- trend.json; then
+            echo "No trend changes to commit."
+          else
+            git add trend.json
+            DATE=$(date -u +'%Y-%m-%d')
+            git commit -m "Trend refresh ${DATE} [skip ci]"
+          fi
+
+      - name: Push
+        run: git push

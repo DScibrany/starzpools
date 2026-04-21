@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="STARZ Pools" />
-  <title>STARZ Pasienky — voľné dráhy</title>
+  <title data-i18n="app.title_full">STARZ Pasienky — voľné dráhy</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
@@ -17,27 +17,37 @@
 <body>
   <header>
     <div class="title">
-      <h1>Mestská plaváreň Pasienky</h1>
+      <h1 data-i18n="app.title">Mestská plaváreň Pasienky</h1>
       <div class="meta">
         <span id="now"></span>
         <span id="status-pill" class="pill"></span>
       </div>
     </div>
-    <nav class="links" aria-label="Externé odkazy">
-      <a class="link-pool" href="#" target="_blank" rel="noopener">Stránka bazéna ↗</a>
-      <a class="link-source" href="#" target="_blank" rel="noopener">Zdroj dát ↗</a>
-      <a class="link-pricing" href="#" target="_blank" rel="noopener">Cenník (PDF) ↗</a>
-    </nav>
+    <div class="header-right">
+      <label class="lang-pick">
+        <span data-i18n="lang.switch">Jazyk</span>
+        <select id="lang-select">
+          <option value="sk">SK</option>
+          <option value="en">EN</option>
+        </select>
+      </label>
+      <nav class="links" data-i18n-aria="links.external.aria" aria-label="Externé odkazy">
+        <a class="link-pool" href="#" target="_blank" rel="noopener">Stránka bazéna ↗</a>
+        <a class="link-source" href="#" target="_blank" rel="noopener">Zdroj dát ↗</a>
+        <a class="link-pricing" href="#" target="_blank" rel="noopener">Cenník (PDF) ↗</a>
+      </nav>
+    </div>
   </header>
 
-  <nav class="views" id="view-tabs" role="tablist" aria-label="Sekcie">
-    <button class="view-tab active" data-view="dashboard" role="tab" aria-selected="true">Dashboard</button>
-    <button class="view-tab" data-view="pricing" role="tab" aria-selected="false">Cenník</button>
+  <nav class="views" id="view-tabs" role="tablist" data-i18n-aria="views.aria" aria-label="Sekcie">
+    <button class="view-tab active" data-view="dashboard" role="tab" aria-selected="true" data-i18n="views.dashboard">Dashboard</button>
+    <button class="view-tab" data-view="trend" role="tab" aria-selected="false" data-i18n="views.trend">Trend</button>
+    <button class="view-tab" data-view="pricing" role="tab" aria-selected="false" data-i18n="views.pricing">Cenník</button>
   </nav>
 
-  <nav class="pools" id="pool-tabs" role="tablist" aria-label="Výber bazéna">
-    <button class="pool-tab active" data-pool="50m" role="tab" aria-selected="true">50 m bazén</button>
-    <button class="pool-tab" data-pool="25m" role="tab" aria-selected="false">25 m bazén</button>
+  <nav class="pools" id="pool-tabs" role="tablist" data-i18n-aria="pools.aria" aria-label="Výber bazéna">
+    <button class="pool-tab active" data-pool="50m" role="tab" aria-selected="true" data-i18n="pools.50m">50 m bazén</button>
+    <button class="pool-tab" data-pool="25m" role="tab" aria-selected="false" data-i18n="pools.25m">25 m bazén</button>
   </nav>
 
   <main>
@@ -45,7 +55,7 @@
     <section id="dashboard-view" class="view">
       <section class="hero">
         <div class="card now-card" id="now-card">
-          <h3>Práve teraz <span class="band-chip" id="band-chip"></span></h3>
+          <h3><span data-i18n="now.title">Práve teraz</span> <span class="band-chip" id="band-chip"></span></h3>
           <div class="big" id="now-big">—</div>
           <div class="sub" id="now-sub"></div>
           <div class="next" id="now-next"></div>
@@ -56,81 +66,72 @@
 
       <details class="finder" aria-label="Vyhľadávač voľných blokov">
         <summary>
-          <span class="section-title">Nájdite si čas</span>
-          <span class="finder-hint">kliknite pre vyhľadávanie voľných blokov</span>
+          <span class="section-title" data-i18n="finder.title">Nájdite si čas</span>
+          <span class="finder-hint" data-i18n="finder.hint">kliknite pre vyhľadávanie voľných blokov</span>
         </summary>
         <div class="finder-row">
-          <label>Dátum
+          <label><span data-i18n="finder.date">Dátum</span>
             <input type="date" id="finder-date" />
           </label>
-          <label>Od
+          <label><span data-i18n="finder.from">Od</span>
             <input type="time" id="finder-from" step="900" />
           </label>
-          <label>Min. voľných dráh
+          <label><span data-i18n="finder.min_lanes">Min. voľných dráh</span>
             <select id="finder-min"></select>
           </label>
-          <label>Dĺžka vstupenky
+          <label><span data-i18n="finder.ticket_length">Dĺžka vstupenky</span>
             <select id="finder-len">
               <option value="60" selected>60 min</option>
               <option value="90">90 min</option>
             </select>
           </label>
           <label class="checkbox">
-            <input type="checkbox" id="finder-today" /> Iba dnes
+            <input type="checkbox" id="finder-today" /> <span data-i18n="finder.today_only">Iba dnes</span>
           </label>
-          <button id="finder-run" type="button">Vyhľadať</button>
-          <button id="finder-share" type="button" class="secondary" title="Skopírovať odkaz s aktuálnym vyhľadávaním">Skopírovať odkaz</button>
+          <button id="finder-run" type="button" data-i18n="finder.run">Vyhľadať</button>
+          <button id="finder-share" type="button" class="secondary" data-i18n-title="finder.share_link_tip" data-i18n="finder.share_link" title="Skopírovať odkaz s aktuálnym vyhľadávaním">Skopírovať odkaz</button>
         </div>
         <div id="finder-results" class="finder-results"></div>
       </details>
 
       <details class="watcher" aria-label="Sledovanie voľných slotov">
         <summary>
-          <span class="section-title">Sledovať voľný slot</span>
-          <span class="watcher-hint">notifikácia, keď sa uvoľní váš preferovaný čas</span>
+          <span class="section-title" data-i18n="watcher.title">Sledovať voľný slot</span>
+          <span class="watcher-hint" data-i18n="watcher.hint">notifikácia, keď sa uvoľní váš preferovaný čas</span>
         </summary>
         <div class="watcher-body">
           <p id="watcher-note" class="watcher-note"></p>
           <div class="watcher-row">
-            <label>Deň
-              <select id="watch-day">
-                <option value="any">ľubovoľný</option>
-                <option value="pondelok">pondelok</option>
-                <option value="utorok">utorok</option>
-                <option value="streda">streda</option>
-                <option value="štvrtok">štvrtok</option>
-                <option value="piatok">piatok</option>
-                <option value="sobota">sobota</option>
-                <option value="nedeľa">nedeľa</option>
-              </select>
+            <label><span data-i18n="watcher.day">Deň</span>
+              <select id="watch-day"></select>
             </label>
-            <label>Od
+            <label><span data-i18n="watcher.from">Od</span>
               <input type="time" id="watch-from" step="900" value="18:00" />
             </label>
-            <label>Min. dráh
+            <label><span data-i18n="watcher.min_lanes">Min. dráh</span>
               <select id="watch-lanes"></select>
             </label>
-            <label>Dĺžka
+            <label><span data-i18n="watcher.length">Dĺžka</span>
               <select id="watch-len">
                 <option value="60" selected>60 min</option>
                 <option value="90">90 min</option>
               </select>
             </label>
-            <button id="watch-add" type="button">Pridať upozornenie</button>
+            <button id="watch-add" type="button" data-i18n="watcher.add">Pridať upozornenie</button>
           </div>
           <ul id="watch-list" class="watch-list"></ul>
         </div>
       </details>
 
       <div class="grid-header">
-        <h2 class="section-title">Dostupnosť po 15 minútach (14 dní)</h2>
+        <h2 class="section-title" data-i18n="heatmap.title">Dostupnosť po 15 minútach (14 dní)</h2>
         <label class="theme-pick">
-          <span>Farby</span>
+          <span data-i18n="heatmap.colors">Farby</span>
           <select id="theme">
-            <option value="viridis">Viridis</option>
-            <option value="blues">Modrá (monochromatická)</option>
-            <option value="traffic">Semafor</option>
-            <option value="diverging">Rozhranie 50 %</option>
+            <option value="viridis" data-i18n="theme.viridis">Viridis</option>
+            <option value="blues" data-i18n="theme.blues">Modrá (monochromatická)</option>
+            <option value="traffic" data-i18n="theme.traffic">Semafor</option>
+            <option value="diverging" data-i18n="theme.diverging">Rozhranie 50 %</option>
           </select>
         </label>
       </div>
@@ -141,9 +142,24 @@
       <div class="legend"></div>
     </section>
 
+    <section id="trend-view" class="view" hidden>
+      <div class="trend">
+        <h2 class="section-title" data-i18n="trend.title">Priemerná obsadenosť po dňoch × hodinách</h2>
+        <p id="trend-meta" class="muted trend-meta"></p>
+        <div class="trend-wrap">
+          <div class="trend-grid" id="trend-grid"></div>
+        </div>
+        <div class="trend-legend" id="trend-legend"></div>
+        <p class="muted trend-foot" data-i18n="trend.foot">
+          Dáta sa počítajú z posledných snapshotov schedule*.json
+          v git histórii. Každý dátum sa započíta raz (posledný známy stav).
+        </p>
+      </div>
+    </section>
+
     <section id="pricing-view" class="view" hidden>
       <div class="pricing" id="pricing">
-        <h2 class="section-title">Cenník — STARZ Mestská plaváreň Pasienky</h2>
+        <h2 class="section-title" data-i18n="pricing.title">Cenník — STARZ Mestská plaváreň Pasienky</h2>
         <div id="pricing-banner" class="pricing-banner" style="display:none"></div>
         <p id="pricing-note" class="muted pricing-note" style="display:none"></p>
         <div id="pricing-body" class="pricing-body"></div>
@@ -152,16 +168,17 @@
     </section>
   </main>
 
-  <nav class="links links-bottom" aria-label="Externé odkazy (mobilné)">
+  <nav class="links links-bottom" data-i18n-aria="links.external.aria.mobile" aria-label="Externé odkazy (mobilné)">
     <a class="link-pool" href="#" target="_blank" rel="noopener">Stránka bazéna ↗</a>
     <a class="link-source" href="#" target="_blank" rel="noopener">Zdroj dát ↗</a>
     <a class="link-pricing" href="#" target="_blank" rel="noopener">Cenník (PDF) ↗</a>
   </nav>
 
   <footer>
-    Rozvrh zo zdrojových tabuliek STARZ (aktualizuje sa denne). Lokálne v
-    <code>schedule.json</code> (25 m) a <code>schedule-50m.json</code> (50 m).
-    Cenník v <code>pricing.json</code>.
+    <span data-i18n="footer.note_prefix">Rozvrh zo zdrojových tabuliek STARZ (aktualizuje sa denne). Lokálne v</span>
+    <code>schedule.json</code> <span data-i18n="footer.and_25m">(25 m) a</span>
+    <code>schedule-50m.json</code> <span data-i18n="footer.and_50m">(50 m). Cenník v</span>
+    <code>pricing.json</code><span data-i18n="footer.dot">.</span>
     <span id="updated"></span>
   </footer>
 
@@ -170,10 +187,10 @@
     <div class="share-dialog" role="dialog" aria-modal="true" aria-labelledby="share-title">
       <div class="share-card" id="share-card"></div>
       <div class="share-actions">
-        <button type="button" id="share-print" class="share-btn-primary">Tlačiť / Uložiť PDF</button>
-        <button type="button" id="share-close" class="share-btn-secondary" data-close="1">Zavrieť</button>
+        <button type="button" id="share-print" class="share-btn-primary" data-i18n="share.print">Tlačiť / Uložiť PDF</button>
+        <button type="button" id="share-close" class="share-btn-secondary" data-close="1" data-i18n="share.close">Zavrieť</button>
       </div>
-      <div class="share-hint">Tip: obrazovku uložíte cez screenshot na telefóne alebo Shift+Cmd+4 / Win+Shift+S na počítači.</div>
+      <div class="share-hint" data-i18n="share.hint">Tip: obrazovku uložíte cez screenshot na telefóne alebo Shift+Cmd+4 / Win+Shift+S na počítači.</div>
     </div>
   </div>
 
