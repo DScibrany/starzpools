@@ -22,6 +22,55 @@ const lanesWord = (n) => (n === 1 ? "dráha" : n >= 2 && n <= 4 ? "dráhy" : "dr
 const todayISO = (d = new Date()) =>
   `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
+function icsEscape(s) {
+  return String(s).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+}
+function icsUTCStamp(d) {
+  return d.getUTCFullYear().toString()
+    + pad(d.getUTCMonth() + 1) + pad(d.getUTCDate()) + "T"
+    + pad(d.getUTCHours()) + pad(d.getUTCMinutes()) + pad(d.getUTCSeconds()) + "Z";
+}
+function buildICS({ iso, startMin, endMin, lanes, pool }) {
+  const [y, mo, d] = iso.split("-").map(Number);
+  const sh = Math.floor(startMin / 60), sm = startMin % 60;
+  const eh = Math.floor(endMin / 60), em = endMin % 60;
+  const dtStart = icsUTCStamp(new Date(y, mo - 1, d, sh, sm, 0));
+  const dtEnd = icsUTCStamp(new Date(y, mo - 1, d, eh, em, 0));
+  const now = icsUTCStamp(new Date());
+  const uid = `starz-${pool}-${iso}-${pad(sh)}${pad(sm)}@starzpools`;
+  const summary = `Plávanie · Pasienky ${pool} · ${lanes} ${lanesWord(lanes)}`;
+  const description = `Mestská plaváreň Pasienky, ${pool} bazén. Voľných dráh v bloku: ${lanes}.`;
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//STARZ Pools//SK",
+    "CALSCALE:GREGORIAN",
+    "BEGIN:VEVENT",
+    `UID:${uid}`,
+    `DTSTAMP:${now}`,
+    `DTSTART:${dtStart}`,
+    `DTEND:${dtEnd}`,
+    `SUMMARY:${icsEscape(summary)}`,
+    `DESCRIPTION:${icsEscape(description)}`,
+    "LOCATION:Mestská plaváreň Pasienky\\, Junácka 4\\, Bratislava",
+    "END:VEVENT",
+    "END:VCALENDAR",
+    "",
+  ].join("\r\n");
+}
+function downloadICS(event) {
+  const text = buildICS(event);
+  const blob = new Blob([text], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `starz-${event.pool}-${event.iso}-${fmt(event.startMin).replace(":","")}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 const THEMES = ["viridis", "blues", "traffic", "diverging"];
 const WEEKDAYS = ["pondelok","utorok","streda","štvrtok","piatok","sobota","nedeľa"];
 const WATCH_KEY = "starz-watches";
@@ -80,6 +129,8 @@ async function load() {
   refreshLaneOptions();
   setupLinks();
   setupGridTooltip();
+  setupGridKeyboard();
+  setupShareModal();
   renderPricingStaleBanner();
   renderPricing();
   render();
@@ -556,15 +607,26 @@ function renderHeatmap(now, data) {
   const grid = document.getElementById("grid");
   grid.style.gridTemplateColumns = `110px repeat(${cols}, minmax(10px, 1fr))`;
   grid.innerHTML = "";
+  grid.setAttribute("role", "grid");
+  grid.setAttribute("aria-label", "Dostupnosť voľných dráh po 15 minútach na 14 dní");
+  grid.setAttribute("aria-rowcount", String(data.days.length + 1));
+  grid.setAttribute("aria-colcount", String(cols + 1));
 
   const corner = document.createElement("div");
   corner.className = "cell header rowhead";
+  corner.setAttribute("role", "columnheader");
+  corner.setAttribute("aria-rowindex", "1");
+  corner.setAttribute("aria-colindex", "1");
   corner.textContent = "deň";
   grid.appendChild(corner);
   for (let c = 0; c < cols; c++) {
     const t = startMin + c * slot;
     const el = document.createElement("div");
     el.className = "cell header tick";
+    el.setAttribute("role", "columnheader");
+    el.setAttribute("aria-rowindex", "1");
+    el.setAttribute("aria-colindex", String(c + 2));
+    el.setAttribute("aria-label", fmt(t));
     if (inNowBand(c)) {
       el.classList.add("now-col");
       if (c === nowStart) el.classList.add("now-col-start");
@@ -577,12 +639,19 @@ function renderHeatmap(now, data) {
     grid.appendChild(el);
   }
 
-  for (const day of data.days) {
+  let initialFocusCell = null;
+  for (let r = 0; r < data.days.length; r++) {
+    const day = data.days[r];
     const isToday = day.date === todayIso;
     const head = document.createElement("div");
     head.className = "cell rowhead" + (isToday ? " today" : "");
+    head.setAttribute("role", "rowheader");
+    head.setAttribute("aria-rowindex", String(r + 2));
+    head.setAttribute("aria-colindex", "1");
     const [, m, d] = day.date.split("-");
-    head.innerHTML = `<span class="dow">${WEEKDAY_SHORT[day.weekday] || day.weekday}</span> <span class="date">${d}.${m}.</span>`;
+    const dow = WEEKDAY_SHORT[day.weekday] || day.weekday;
+    head.setAttribute("aria-label", `${day.weekday} ${d}.${m}.`);
+    head.innerHTML = `<span class="dow">${dow}</span> <span class="date">${d}.${m}.</span>`;
     grid.appendChild(head);
 
     for (let c = 0; c < cols; c++) {
@@ -590,6 +659,10 @@ function renderHeatmap(now, data) {
       const level = levelFor(raw, data.maxLanes);
       const el = document.createElement("div");
       el.className = `cell lane-${level}`;
+      el.setAttribute("role", "gridcell");
+      el.setAttribute("aria-rowindex", String(r + 2));
+      el.setAttribute("aria-colindex", String(c + 2));
+      el.setAttribute("tabindex", "-1");
       if (raw > 0) el.dataset.free = String(raw);
       if (isToday && inNowBand(c)) {
         el.classList.add("now");
@@ -597,16 +670,57 @@ function renderHeatmap(now, data) {
         if (c === nowEnd) el.classList.add("now-end");
       }
       const s = startMin + c * slot;
+      const lanesText = raw === 0 ? "žiadne voľné dráhy" : `${raw} z ${data.maxLanes} voľných dráh`;
       el.title = `${day.weekday} ${d}.${m}. · ${fmt(s)}–${fmt(s + slot)} · ${raw === 0 ? "žiadne voľné dráhy" : raw + " / " + data.maxLanes + " dráh"}`;
+      el.setAttribute("aria-label", `${day.weekday} ${d}.${m}. o ${fmt(s)}: ${lanesText}`);
       el.dataset.date = day.date;
+      el.dataset.row = String(r);
       el.dataset.col = String(c);
       grid.appendChild(el);
+      if (isToday && inNowBand(c) && !initialFocusCell) initialFocusCell = el;
     }
   }
+
+  if (!initialFocusCell) {
+    initialFocusCell = grid.querySelector(".cell[role='gridcell']");
+  }
+  if (initialFocusCell) initialFocusCell.setAttribute("tabindex", "0");
 
   renderLegend(data.maxLanes);
   const tip = document.getElementById("grid-tooltip");
   if (tip) { tip.hidden = true; tip.dataset.forCell = ""; }
+}
+
+function setupGridKeyboard() {
+  const grid = document.getElementById("grid");
+  if (!grid) return;
+  grid.addEventListener("keydown", (e) => {
+    const cell = e.target.closest?.(".cell[role='gridcell']");
+    if (!cell || !grid.contains(cell)) return;
+    const r = Number(cell.dataset.row);
+    const c = Number(cell.dataset.col);
+    const move = (nr, nc) =>
+      grid.querySelector(`.cell[role='gridcell'][data-row='${nr}'][data-col='${nc}']`);
+    const rowCells = (nr) =>
+      grid.querySelectorAll(`.cell[role='gridcell'][data-row='${nr}']`);
+    let target = null;
+    switch (e.key) {
+      case "ArrowRight": target = move(r, c + 1); break;
+      case "ArrowLeft":  target = move(r, c - 1); break;
+      case "ArrowDown":  target = move(r + 1, c); break;
+      case "ArrowUp":    target = move(r - 1, c); break;
+      case "Home": { const list = rowCells(r); target = list[0] || null; break; }
+      case "End":  { const list = rowCells(r); target = list[list.length - 1] || null; break; }
+      case "Enter":
+      case " ": e.preventDefault(); cell.click(); return;
+      default: return;
+    }
+    if (!target) return;
+    e.preventDefault();
+    cell.setAttribute("tabindex", "-1");
+    target.setAttribute("tabindex", "0");
+    target.focus();
+  });
 }
 
 function setupGridTooltip() {
@@ -725,10 +839,14 @@ function renderTodayBlocks(now, data) {
     const b = it.b;
     const level = levelFor(b.lanes, data.maxLanes);
     const cls = [it.past ? "past" : it.live ? "live" : "", it.hide ? "mobile-hidden" : ""].filter(Boolean).join(" ");
+    const icsBtn = it.past ? "" :
+      `<button type="button" class="ics-btn" title="Pridať do kalendára"
+        data-iso="${day.date}" data-start="${b.startMin}" data-end="${b.endMin}" data-lanes="${b.lanes}">📅</button>`;
     return `<li class="${cls}">
       <span class="time">${fmt(b.startMin)}–${fmt(b.endMin)}</span>
       <span class="lanes lane-${level}">${b.lanes} ${lanesWord(b.lanes)}</span>
       ${it.live ? '<span class="tag">prebieha</span>' : it.past ? '<span class="tag past">skončilo</span>' : ''}
+      ${icsBtn}
     </li>`;
   }).join("");
 
@@ -737,10 +855,26 @@ function renderTodayBlocks(now, data) {
     : "";
 
   box.innerHTML = `
-    <h3>Dnes · ${day.weekday} ${d}.${m}.</h3>
+    <h3>Dnes · ${day.weekday} ${d}.${m}.
+      <button type="button" class="share-trigger" title="Zdieľať dnešný plán (obrazovka na screenshot)">📸 Zdieľať</button>
+    </h3>
     <ul class="blocks">${rows}</ul>
     ${toggleHtml}
   `;
+
+  box.querySelector(".share-trigger")?.addEventListener("click", openShareCard);
+
+  box.querySelectorAll(".ics-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      downloadICS({
+        iso: btn.dataset.iso,
+        startMin: Number(btn.dataset.start),
+        endMin: Number(btn.dataset.end),
+        lanes: Number(btn.dataset.lanes),
+        pool: state.pool,
+      });
+    });
+  });
 
   const toggle = box.querySelector(".blocks-toggle");
   if (toggle) {
@@ -864,15 +998,29 @@ function renderFinderResults(hits) {
     const lenStr = lenH ? `${lenH} h${lenM ? " " + lenM + " min" : ""}` : `${lenM} min`;
     const band = bandForMinOnDate(h.date, h.startMin);
     const chip = priceChipHTML(state.pool, band, lenMin);
+    const icsEnd = Math.min(h.endMin, h.startMin + lenMin);
     parts.push(`<div class="hit">
       <span class="d">${WEEKDAY_SHORT[h.weekday] || h.weekday} ${d}.${m}.</span>
       <span class="t">${fmt(h.startMin)}–${fmt(h.endMin)}</span>
       <span class="len muted">${lenStr}</span>
       <span class="l">≥${h.lanes} ${lanesWord(h.lanes)}</span>
       ${chip}
+      <button type="button" class="ics-btn" title="Pridať do kalendára"
+        data-iso="${h.date}" data-start="${h.startMin}" data-end="${icsEnd}" data-lanes="${h.lanes}">📅</button>
     </div>`);
   }
   box.innerHTML = parts.join("");
+  box.querySelectorAll(".ics-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      downloadICS({
+        iso: btn.dataset.iso,
+        startMin: Number(btn.dataset.start),
+        endMin: Number(btn.dataset.end),
+        lanes: Number(btn.dataset.lanes),
+        pool: state.pool,
+      });
+    });
+  });
 }
 
 function applyFinderHighlight() {
@@ -1069,6 +1217,92 @@ function renderWatcher() {
     });
   });
   if (notifiedChanged) saveNotified();
+}
+
+function buildShareCardHTML(data, now) {
+  const poolLabel = state.pool === "25m" ? "25 m bazén" : "50 m bazén";
+  const dateStr = now.toLocaleDateString("sk-SK", {
+    weekday: "long", day: "numeric", month: "numeric", year: "numeric",
+  });
+  const updatedStr = data?.updated ? `Dáta: ${data.updated}` : "";
+  const headHTML = `
+    <div class="sc-head">
+      <div class="sc-brand">STARZ Pasienky</div>
+      <div class="sc-pool">${poolLabel}</div>
+      <div class="sc-date">${dateStr}</div>
+    </div>`;
+  const footHTML = `
+    <div class="sc-foot">
+      <span class="sc-url">dscibrany.github.io/starzpools</span>
+      ${updatedStr ? `<span class="sc-updated">${updatedStr}</span>` : ""}
+    </div>`;
+  if (!data) {
+    return `${headHTML}<div class="sc-empty">Dáta pre tento bazén nie sú k dispozícii.</div>${footHTML}`;
+  }
+  const iso = todayISO(now);
+  const day = findDay(data, iso);
+  if (!day) {
+    return `${headHTML}<div class="sc-empty">Pre dnešok nie je v rozvrhu záznam.</div>${footHTML}`;
+  }
+  const blocks = collapseBlocks(day.free, data.slotMinutes, toMin(data.dayStart));
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const maxLanes = data.maxLanes;
+  if (!blocks.length) {
+    return `${headHTML}<div class="sc-empty">Dnes nie sú verejné bloky.</div>${footHTML}`;
+  }
+  const rows = blocks.map(b => {
+    const level = levelFor(b.lanes, maxLanes);
+    const isPast = b.endMin <= nowMin;
+    const isLive = nowMin >= b.startMin && nowMin < b.endMin;
+    const lenMin = b.endMin - b.startMin;
+    const lenH = Math.floor(lenMin / 60), lenR = lenMin % 60;
+    const lenStr = lenH ? `${lenH} h${lenR ? " " + lenR + " min" : ""}` : `${lenR} min`;
+    const dotsFilled = "●".repeat(b.lanes);
+    const dotsEmpty = "○".repeat(Math.max(0, maxLanes - b.lanes));
+    const tag = isLive ? '<span class="sc-tag live">prebieha</span>'
+             : isPast ? '<span class="sc-tag past">skončilo</span>' : "";
+    return `<li class="${isPast ? "past" : isLive ? "live" : ""}">
+      <span class="sc-time">${fmt(b.startMin)}–${fmt(b.endMin)}</span>
+      <span class="sc-dur">${lenStr}</span>
+      <span class="sc-lanes lane-${level}">${b.lanes} ${lanesWord(b.lanes)}</span>
+      <span class="sc-dots lane-${level}" aria-hidden="true"><span class="on">${dotsFilled}</span><span class="off">${dotsEmpty}</span></span>
+      ${tag}
+    </li>`;
+  }).join("");
+  return `${headHTML}
+    <ul class="sc-blocks">${rows}</ul>
+    <div class="sc-legend">max ${maxLanes} dráh</div>
+    ${footHTML}`;
+}
+
+function openShareCard() {
+  const modal = document.getElementById("share-modal");
+  const card = document.getElementById("share-card");
+  if (!modal || !card) return;
+  card.innerHTML = buildShareCardHTML(activeData(), new Date());
+  modal.hidden = false;
+  document.body.classList.add("share-open");
+  document.getElementById("share-close")?.focus();
+}
+
+function closeShareCard() {
+  const modal = document.getElementById("share-modal");
+  if (!modal) return;
+  modal.hidden = true;
+  document.body.classList.remove("share-open");
+}
+
+function setupShareModal() {
+  const modal = document.getElementById("share-modal");
+  if (!modal) return;
+  modal.addEventListener("click", (e) => {
+    const t = e.target;
+    if (t && t instanceof Element && t.getAttribute("data-close") === "1") closeShareCard();
+  });
+  document.getElementById("share-print")?.addEventListener("click", () => window.print());
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !modal.hidden) closeShareCard();
+  });
 }
 
 function renderPricing() {

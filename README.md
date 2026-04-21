@@ -100,8 +100,10 @@ to len ako zoznam vecí, ktoré dávajú zmysel, ak sa projekt bude rozvíjať.
       cache-first stratégiou pre statické assety a network-first pre JSON.)
 - [ ] **Obľúbené sloty** — uložené do `localStorage`, s indikátorom pri
       riadku v heatmape a v karte „Dnes".
-- [ ] **Export do kalendára** — tlačidlo „Pridať do kalendára" pri
-      každom bloku/výsledku vyhľadávača (`.ics` link).
+- [x] ~~**Export do kalendára** — tlačidlo „Pridať do kalendára" pri
+      každom bloku/výsledku vyhľadávača (`.ics` link).~~
+      (hotovo — ikonka 📅 v karte „Dnes" a pri každom výsledku vyhľadávača
+      stiahne `.ics` súbor s UID, DTSTART/DTEND v UTC a popisom slotu.)
 - [x] ~~**Upozornenia** — opt-in web push, keď sa uvoľní vopred zvolený slot
       (napr. „utorok 18:00, aspoň 3 dráhy").~~
       (hotovo — sekcia „Sledovať voľný slot": deň/čas/dráhy/dĺžka, watche sa
@@ -119,18 +121,32 @@ to len ako zoznam vecí, ktoré dávajú zmysel, ak sa projekt bude rozvíjať.
       neaktuálne" (podobne ako pri cenníku).
 - [ ] **Ďalšie STARZ bazény** — Rosnička, Delfín, Tehelné pole; rovnaký
       formát `schedule*.json`, len s iným pool-tabom.
-- [ ] **A11y audit** — ARIA role pre heatmap-cells, klávesová navigácia
-      po bunkách, kontrast tmavých farieb v Semafore.
+- [x] ~~**A11y audit** — ARIA role pre heatmap-cells, klávesová navigácia
+      po bunkách, kontrast tmavých farieb v Semafore.~~
+      (hotovo — grid má `role="grid"` + `aria-rowcount`/`aria-colcount`,
+      bunky `gridcell` s `aria-label`, roving-tabindex ovládané šípkami +
+      Home/End/Enter, fokus-ring, v Semafore svetlejšia lane-1 (#ef4444)
+      a lane-4 (#22c55e).)
 - [x] ~~**Zdieľanie odkazu** — URL s parametrami `?date=…&from=…&lanes=…`,
       ktorá otvorí dashboard s predvyplneným vyhľadávačom.~~
       (hotovo — vyhľadávač sa synchronizuje s URL cez `pool`, `date`, `from`,
       `lanes`, `len`, `today`; tlačidlo „Skopírovať odkaz" vloží aktuálny
       URL do schránky.)
-- [ ] **Print/share karta** — „dnešný plán" ako jedna obrazovka
-      optimalizovaná na screenshot do chatu.
-- [ ] **Automatické mazanie stale Pages environment branches** — keď
+- [x] ~~**Print/share karta** — „dnešný plán" ako jedna obrazovka
+      optimalizovaná na screenshot do chatu.~~
+      (hotovo — v karte „Dnes" tlačidlo 📸 Zdieľať otvorí modal s kompaktným
+      screenshot-friendly prehľadom všetkých dnešných verejných blokov (časy,
+      voľné dráhy, dĺžka, live/past tag). Modal má „Tlačiť / Uložiť PDF"
+      cez `window.print()` s dedikovaným `@media print` štýlom, ktorý
+      izoluje len kartu na bielom pozadí.)
+- [x] ~~**Automatické mazanie stale Pages environment branches** — keď
       workflow deploynutia spadne, aktuálne treba manuálne upratať
-      deployment-branch rule.
+      deployment-branch rule.~~
+      (hotovo — workflow `.github/workflows/cleanup-pages-branches.yml`
+      beží týždenne + po každom neúspešnom Pages deploy a maže
+      deployment-branch policies, ktorým už nezodpovedá žiadna vetva. Mazanie
+      vyžaduje token s „Administration: write"; nastav ho ako
+      `PAGES_ADMIN_TOKEN`, inak workflow len upozorní varovaním.)
 
 ## Funkcie
 

@@ -1,0 +1,74 @@
+name: Cleanup stale Pages deployment-branch policies
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_run:
+    workflows: ["Deploy to GitHub Pages"]
+    types: [completed]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  cleanup:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion != 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prune orphaned deployment-branch policies
+        env:
+          # Deployment-branch policies are managed under the "repository administration"
+          # API, which GITHUB_TOKEN cannot reach. Set a PAGES_ADMIN_TOKEN secret (PAT
+          # with the `repo` scope or a fine-grained token with "Administration: write")
+          # to allow deletion. Without it the job falls back to GITHUB_TOKEN and only
+          # reports what would be pruned as warnings.
+          GH_TOKEN: ${{ secrets.PAGES_ADMIN_TOKEN || secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+        run: |
+          set -euo pipefail
+
+          env_resp=$(gh api "repos/$OWNER/$REPO/environments/github-pages" 2>/dev/null || echo "")
+          if [ -z "$env_resp" ]; then
+            echo "github-pages environment not present; nothing to prune."
+            exit 0
+          fi
+
+          if ! gh api "repos/$OWNER/$REPO/environments/github-pages/deployment-branch-policies" \
+              --jq '.branch_policies[] | [.id, .type // "branch", .name] | @tsv' \
+              > policies.tsv 2>/dev/null; then
+            echo "No deployment-branch policies configured; nothing to prune."
+            exit 0
+          fi
+
+          if [ ! -s policies.tsv ]; then
+            echo "No deployment-branch policies configured; nothing to prune."
+            exit 0
+          fi
+
+          gh api "repos/$OWNER/$REPO/branches" --paginate --jq '.[].name' > branches.txt
+          gh api "repos/$OWNER/$REPO/tags" --paginate --jq '.[].name' > tags.txt 2>/dev/null || true
+          touch tags.txt
+
+          removed=0
+          while IFS=$'\t' read -r pid ptype pname; do
+            [ -z "${pid:-}" ] && continue
+            case "$pname" in
+              *\**|*\?*|*\[*) echo "skip wildcard policy '$pname'"; continue ;;
+            esac
+            if [ "$ptype" = "tag" ]; then
+              if grep -Fxq "$pname" tags.txt; then continue; fi
+            else
+              if grep -Fxq "$pname" branches.txt; then continue; fi
+            fi
+            echo "Removing stale $ptype policy '$pname' (id=$pid)"
+            if gh api -X DELETE "repos/$OWNER/$REPO/environments/github-pages/deployment-branch-policies/$pid"; then
+              removed=$((removed + 1))
+            else
+              echo "::warning::Failed to delete policy $pid; GITHUB_TOKEN may lack permissions."
+            fi
+          done < policies.tsv
+
+          echo "Removed $removed stale deployment-branch polic$([ "$removed" -eq 1 ] && echo y || echo ies)."
