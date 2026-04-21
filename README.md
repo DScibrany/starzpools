@@ -118,9 +118,15 @@ to len ako zoznam vecí, ktoré dávajú zmysel, ak sa projekt bude rozvíjať.
       otvorená.)
 - [ ] **Anglická verzia** — jazykový prepínač (sk/en), texty vytiahnuté
       do `i18n.json`.
-- [ ] **Trend obsadenosti** — tab/panel s priemerom voľných dráh po
+- [x] ~~**Trend obsadenosti** — tab/panel s priemerom voľných dráh po
       hodinách/dňoch za posledných N týždňov (vyžaduje archiváciu
-      `schedule.json` snapshotov).
+      `schedule.json` snapshotov).~~
+      (hotovo — archiv snapshotov je už v git histórii;
+      `scripts/compute_trend.py` walkuje posledných 8 týždňov commitov
+      `schedule*.json`, pre každý dátum vezme najnovší známy stav, a
+      agreguje priemery per (bazén, deň-v-týždni, 15-min slot) do
+      `trend.json`. Workflow `update-data.yml` ho prepočítava denne. V UI
+      je nová záložka **Trend** s 7×76 heatmapou priemernej voľnosti.)
 - [ ] **Robustnosť scrapera** — ak sa zmení štruktúra zdrojového
       XLSX/HTML, dashboard by mal zobraziť banner „dáta môžu byť
       neaktuálne" (podobne ako pri cenníku).

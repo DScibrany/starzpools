@@ -85,6 +85,7 @@ const state = {
   theme: "viridis",
   data: { "25m": null, "50m": null },
   pricing: null,
+  trend: null,
   finderHits: [],
   watches: [],
   notified: {},
@@ -113,14 +114,16 @@ if ("serviceWorker" in navigator) {
 }
 
 async function load() {
-  const [d25, d50, pricing] = await Promise.all([
+  const [d25, d50, pricing, trend] = await Promise.all([
     fetchJSON(POOL_FILE["25m"]).catch(() => null),
     fetchJSON(POOL_FILE["50m"]).catch(() => null),
     fetchJSON("pricing.json").catch(() => null),
+    fetchJSON("trend.json").catch(() => null),
   ]);
   state.data["25m"] = d25;
   state.data["50m"] = d50;
   state.pricing = pricing;
+  state.trend = trend;
 
   applyPoolFromURL();
   setupViews();
@@ -265,12 +268,15 @@ function setupViews() {
       x.setAttribute("aria-selected", active ? "true" : "false");
     });
     document.getElementById("dashboard-view").hidden = name !== "dashboard";
+    document.getElementById("trend-view").hidden = name !== "trend";
     document.getElementById("pricing-view").hidden = name !== "pricing";
+    if (name === "trend") renderTrend();
     if (location.hash.slice(1) !== name) history.replaceState(null, "", "#" + name);
   };
   tabs.forEach(t => t.addEventListener("click", () => apply(t.dataset.view)));
   const fromHash = location.hash.slice(1);
-  apply(fromHash === "pricing" ? "pricing" : "dashboard");
+  const initialView = ["pricing", "trend", "dashboard"].includes(fromHash) ? fromHash : "dashboard";
+  apply(initialView);
 }
 
 function isHoliday(iso) {
@@ -432,6 +438,7 @@ function setupTabs() {
       refreshLaneOptions();
       renderPricing();
       render();
+      if (state.view === "trend") renderTrend();
       updateURLFromState();
     });
   });
@@ -1371,6 +1378,93 @@ function setupShareModal() {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !modal.hidden) closeShareCard();
   });
+}
+
+function renderTrend() {
+  const grid = document.getElementById("trend-grid");
+  const meta = document.getElementById("trend-meta");
+  const legend = document.getElementById("trend-legend");
+  if (!grid || !meta || !legend) return;
+
+  const trend = state.trend;
+  if (!trend || !trend.pools || !trend.pools[state.pool]) {
+    grid.innerHTML = "";
+    legend.innerHTML = "";
+    meta.textContent = "Pre tento bazén zatiaľ nie sú trendové dáta.";
+    return;
+  }
+  const p = trend.pools[state.pool];
+  const maxLanes = p.maxLanes || 4;
+  const slotMin = p.slotMinutes || 15;
+  const startMin = toMin(p.dayStart || "05:00");
+  const endMin = toMin(p.dayEnd || "24:00");
+  const cols = Math.ceil((endMin - startMin) / slotMin);
+
+  const byWd = p.byWeekday || {};
+  const totalSamples = Object.values(byWd).reduce((a, b) => a + (b.samples || 0), 0);
+  meta.textContent = `Priemer za posledných ${trend.windowWeeks || 8} týždňov · ${state.pool} bazén · ${totalSamples} dní v databáze · aktualizované ${trend.updated || "—"}.`;
+
+  grid.style.gridTemplateColumns = `110px repeat(${cols}, minmax(10px, 1fr))`;
+  grid.innerHTML = "";
+  grid.setAttribute("role", "grid");
+  grid.setAttribute("aria-label", "Priemerná obsadenosť po dňoch týždňa a hodinách");
+
+  const corner = document.createElement("div");
+  corner.className = "cell header rowhead";
+  corner.textContent = "deň";
+  grid.appendChild(corner);
+  for (let c = 0; c < cols; c++) {
+    const t = startMin + c * slotMin;
+    const el = document.createElement("div");
+    el.className = "cell header tick";
+    if (t % 60 === 0) {
+      el.textContent = String(Math.floor(t / 60));
+      el.classList.add("hour");
+    }
+    grid.appendChild(el);
+  }
+
+  for (const wd of WEEKDAYS) {
+    const bucket = byWd[wd];
+    const head = document.createElement("div");
+    head.className = "cell rowhead";
+    head.innerHTML = `<span class="dow">${WEEKDAY_SHORT[wd] || wd}</span> <span class="date">${wd}</span>`;
+    grid.appendChild(head);
+    const avg = bucket?.avg || [];
+    for (let c = 0; c < cols; c++) {
+      const v = avg[c];
+      const el = document.createElement("div");
+      if (!bucket || v == null) {
+        el.className = "cell lane-0";
+        el.title = `${wd} ${fmt(startMin + c * slotMin)} · bez dát`;
+      } else {
+        const rounded = Math.round(v * 10) / 10;
+        const level = v <= 0 ? 0 : levelFor(Math.max(1, Math.round(v)), maxLanes);
+        el.className = `cell lane-${level}`;
+        el.title = `${wd} ${fmt(startMin + c * slotMin)} · priemer ${rounded} z ${maxLanes} (${bucket.samples} dní)`;
+      }
+      grid.appendChild(el);
+    }
+  }
+
+  renderTrendLegend(legend, maxLanes);
+}
+
+function renderTrendLegend(el, max) {
+  const q = (n) => Math.max(1, Math.round(max * n));
+  const range = (lo, hi) => lo === hi ? String(lo) : `${lo}–${hi}`;
+  const r1Hi = q(0.25);
+  const r2Lo = r1Hi + 1, r2Hi = q(0.5);
+  const r3Lo = r2Hi + 1, r3Hi = q(0.75);
+  const r4Lo = r3Hi + 1, r4Hi = max;
+  el.innerHTML = `
+    <span>priemer voľných dráh (z ${max}):</span>
+    <span><i class="sw lane-0"></i> 0 (mimo verejnosti)</span>
+    <span><i class="sw lane-1"></i> ${range(1, r1Hi)}</span>
+    ${r2Lo <= r2Hi ? `<span><i class="sw lane-2"></i> ${range(r2Lo, r2Hi)}</span>` : ""}
+    ${r3Lo <= r3Hi ? `<span><i class="sw lane-3"></i> ${range(r3Lo, r3Hi)}</span>` : ""}
+    ${r4Lo <= r4Hi ? `<span><i class="sw lane-4"></i> ${range(r4Lo, r4Hi)}</span>` : ""}
+  `;
 }
 
 function renderPricing() {

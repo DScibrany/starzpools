@@ -32,6 +32,7 @@
 
   <nav class="views" id="view-tabs" role="tablist" aria-label="Sekcie">
     <button class="view-tab active" data-view="dashboard" role="tab" aria-selected="true">Dashboard</button>
+    <button class="view-tab" data-view="trend" role="tab" aria-selected="false">Trend</button>
     <button class="view-tab" data-view="pricing" role="tab" aria-selected="false">Cenník</button>
   </nav>
 
@@ -139,6 +140,21 @@
       </div>
 
       <div class="legend"></div>
+    </section>
+
+    <section id="trend-view" class="view" hidden>
+      <div class="trend">
+        <h2 class="section-title">Priemerná obsadenosť po dňoch × hodinách</h2>
+        <p id="trend-meta" class="muted trend-meta"></p>
+        <div class="trend-wrap">
+          <div class="trend-grid" id="trend-grid"></div>
+        </div>
+        <div class="trend-legend" id="trend-legend"></div>
+        <p class="muted trend-foot">
+          Dáta sa počítajú z posledných snapshotov <code>schedule*.json</code>
+          v git histórii. Každý dátum sa započíta raz (posledný známy stav).
+        </p>
+      </div>
     </section>
 
     <section id="pricing-view" class="view" hidden>
