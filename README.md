@@ -143,6 +143,30 @@ to len ako zoznam vecí, ktoré dávajú zmysel, ak sa projekt bude rozvíjať.
       automaticky.)
 - [ ] **Ďalšie STARZ bazény** — Rosnička, Delfín, Tehelné pole; rovnaký
       formát `schedule*.json`, len s iným pool-tabom.
+- [ ] **Odporúčač najlepšieho času** — využiť `trend.json` a ponúknuť
+      „najtichšie okno tento týždeň" pre zadanú dĺžku + min. dráhy.
+      Prirodzené rozšírenie vyhľadávača a trendu, všetky dáta už existujú.
+- [ ] **Neistota v trende** — priemer v trende skrýva rozptyl. Zobraziť
+      min/max whiskers alebo druhú farebnú dimenziu, aby užívateľ videl,
+      ktoré sloty sú premenlivé.
+- [ ] **Trend citlivý na sviatky** — sviatky momentálne ťahajú dole
+      priemer daného dňa týždňa. `pricing.json.holidays` je už dostupné,
+      stačí ich odfiltrovať v `scripts/compute_trend.py`.
+- [ ] **Golden-file test scrapera** — stale-banner rieši následok, ale
+      CI test, ktorý padne pri zmene štruktúry XLSX, by chytil problém
+      skôr než sa dáta zastarajú. Malý test, veľká hodnota.
+- [ ] **Zachovať posledné známe dáta pri stale** — namiesto „bez dát"
+      ponechať vykreslenie heatmapy/karty a zobraziť len banner navrchu.
+- [ ] **Odber kalendára (`subscribe.ics`)** — denne generovaný ICS feed
+      so všetkými verejnými blokmi na 14 dní; jedno-klikové „Pridať do
+      Google kalendára" miesto per-blok ICS.
+- [ ] **OG image pre zdieľanie** — dnešná share karta pred-renderovaná
+      ako PNG cez GitHub Action pre náhľad na Slacku/Messengeri.
+- [ ] **Testy čistých funkcií** — `collapseBlocks`, `levelFor`,
+      `bandForMinOnDate`, `scheduleAgeDays` sú čisté a triviálne pokryť.
+      Odomkne bezpečný refactor.
+- [ ] **Rozdeliť `app.js`** — ~1700 riadkov; ES moduly (render / data /
+      watcher / i18n) by zlepšili orientáciu.
 - [x] ~~**A11y audit** — ARIA role pre heatmap-cells, klávesová navigácia
       po bunkách, kontrast tmavých farieb v Semafore.~~
       (hotovo — grid má `role="grid"` + `aria-rowcount`/`aria-colcount`,
