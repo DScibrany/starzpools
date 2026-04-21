@@ -75,6 +75,7 @@ const THEMES = ["viridis", "blues", "traffic", "diverging"];
 const WEEKDAYS = ["pondelok","utorok","streda","štvrtok","piatok","sobota","nedeľa"];
 const WATCH_KEY = "starz-watches";
 const NOTIFIED_KEY = "starz-notified";
+const FAV_KEY = "starz-favorites";
 const SCHEDULE_REFRESH_MS = 5 * 60 * 1000;
 const NOTIFIED_TTL_MS = 48 * 60 * 60 * 1000;
 
@@ -87,6 +88,7 @@ const state = {
   finderHits: [],
   watches: [],
   notified: {},
+  favorites: [],
 };
 
 async function fetchJSON(path) {
@@ -126,6 +128,7 @@ async function load() {
   setupTheme();
   setupFinder();
   setupWatcher();
+  setupFavorites();
   refreshLaneOptions();
   setupLinks();
   setupGridTooltip();
@@ -644,14 +647,15 @@ function renderHeatmap(now, data) {
     const day = data.days[r];
     const isToday = day.date === todayIso;
     const head = document.createElement("div");
-    head.className = "cell rowhead" + (isToday ? " today" : "");
+    const hasFav = rowHasFavorite(state.pool, day.weekday);
+    head.className = "cell rowhead" + (isToday ? " today" : "") + (hasFav ? " has-fav" : "");
     head.setAttribute("role", "rowheader");
     head.setAttribute("aria-rowindex", String(r + 2));
     head.setAttribute("aria-colindex", "1");
     const [, m, d] = day.date.split("-");
     const dow = WEEKDAY_SHORT[day.weekday] || day.weekday;
-    head.setAttribute("aria-label", `${day.weekday} ${d}.${m}.`);
-    head.innerHTML = `<span class="dow">${dow}</span> <span class="date">${d}.${m}.</span>`;
+    head.setAttribute("aria-label", `${day.weekday} ${d}.${m}.${hasFav ? " (obľúbený deň)" : ""}`);
+    head.innerHTML = `<span class="dow">${dow}</span> <span class="date">${d}.${m}.</span>${hasFav ? '<span class="fav-mark" aria-hidden="true">★</span>' : ""}`;
     grid.appendChild(head);
 
     for (let c = 0; c < cols; c++) {
@@ -671,8 +675,10 @@ function renderHeatmap(now, data) {
       }
       const s = startMin + c * slot;
       const lanesText = raw === 0 ? "žiadne voľné dráhy" : `${raw} z ${data.maxLanes} voľných dráh`;
-      el.title = `${day.weekday} ${d}.${m}. · ${fmt(s)}–${fmt(s + slot)} · ${raw === 0 ? "žiadne voľné dráhy" : raw + " / " + data.maxLanes + " dráh"}`;
-      el.setAttribute("aria-label", `${day.weekday} ${d}.${m}. o ${fmt(s)}: ${lanesText}`);
+      const isFavCell = cellFavoritedFor(state.pool, day.weekday, s);
+      if (isFavCell) el.classList.add("fav");
+      el.title = `${day.weekday} ${d}.${m}. · ${fmt(s)}–${fmt(s + slot)} · ${raw === 0 ? "žiadne voľné dráhy" : raw + " / " + data.maxLanes + " dráh"}${isFavCell ? " · ★ obľúbené" : ""}`;
+      el.setAttribute("aria-label", `${day.weekday} ${d}.${m}. o ${fmt(s)}: ${lanesText}${isFavCell ? " (obľúbené)" : ""}`);
       el.dataset.date = day.date;
       el.dataset.row = String(r);
       el.dataset.col = String(c);
@@ -844,7 +850,13 @@ function renderTodayBlocks(now, data) {
         data-iso="${day.date}" data-start="${b.startMin}" data-end="${b.endMin}" data-lanes="${b.lanes}">📅</button>`;
     const dotsOn = "●".repeat(b.lanes);
     const dotsOff = "○".repeat(Math.max(0, data.maxLanes - b.lanes));
+    const isFav = !!findFavoriteForBlock(state.pool, day.weekday, b.startMin, b.endMin);
+    const favBtn = `<button type="button" class="fav-btn${isFav ? " on" : ""}"
+      title="${isFav ? "Odobrať z obľúbených" : "Pridať do obľúbených"}"
+      aria-pressed="${isFav ? "true" : "false"}"
+      data-weekday="${day.weekday}" data-start="${b.startMin}" data-end="${b.endMin}">${isFav ? "★" : "☆"}</button>`;
     return `<li class="${cls}">
+      ${favBtn}
       <span class="time">${fmt(b.startMin)}–${fmt(b.endMin)}</span>
       <span class="lanes lane-${level}">${b.lanes} ${lanesWord(b.lanes)}</span>
       <span class="dots lane-${level}" aria-hidden="true"><span class="on">${dotsOn}</span><span class="off">${dotsOff}</span></span>
@@ -866,6 +878,17 @@ function renderTodayBlocks(now, data) {
   `;
 
   box.querySelector(".share-trigger")?.addEventListener("click", openShareCard);
+
+  box.querySelectorAll(".fav-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      toggleFavoriteBlock(
+        state.pool,
+        btn.dataset.weekday,
+        Number(btn.dataset.start),
+        Number(btn.dataset.end),
+      );
+    });
+  });
 
   box.querySelectorAll(".ics-btn").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -1220,6 +1243,48 @@ function renderWatcher() {
     });
   });
   if (notifiedChanged) saveNotified();
+}
+
+function loadFavorites() {
+  try {
+    const raw = localStorage.getItem(FAV_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch { return []; }
+}
+function saveFavorites() {
+  try { localStorage.setItem(FAV_KEY, JSON.stringify(state.favorites)); } catch {}
+}
+function setupFavorites() { state.favorites = loadFavorites(); }
+
+function findFavoriteForBlock(pool, weekday, startMin, endMin) {
+  return state.favorites.find(f =>
+    f.pool === pool && f.weekday === weekday &&
+    f.startMin === startMin && f.endMin === endMin
+  );
+}
+
+function cellFavoritedFor(pool, weekday, minOfDay) {
+  return state.favorites.some(f =>
+    f.pool === pool && f.weekday === weekday &&
+    minOfDay >= f.startMin && minOfDay < f.endMin
+  );
+}
+
+function rowHasFavorite(pool, weekday) {
+  return state.favorites.some(f => f.pool === pool && f.weekday === weekday);
+}
+
+function toggleFavoriteBlock(pool, weekday, startMin, endMin) {
+  const existing = findFavoriteForBlock(pool, weekday, startMin, endMin);
+  if (existing) {
+    state.favorites = state.favorites.filter(f => f.id !== existing.id);
+  } else {
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    state.favorites.push({ id, pool, weekday, startMin, endMin });
+  }
+  saveFavorites();
+  render();
 }
 
 function buildShareCardHTML(data, now) {
