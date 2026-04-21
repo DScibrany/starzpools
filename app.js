@@ -23,6 +23,12 @@ const todayISO = (d = new Date()) =>
   `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
 const THEMES = ["viridis", "blues", "traffic", "diverging"];
+const WEEKDAYS = ["pondelok","utorok","streda","štvrtok","piatok","sobota","nedeľa"];
+const WATCH_KEY = "starz-watches";
+const NOTIFIED_KEY = "starz-notified";
+const SCHEDULE_REFRESH_MS = 5 * 60 * 1000;
+const NOTIFIED_TTL_MS = 48 * 60 * 60 * 1000;
+
 const state = {
   pool: "50m",
   view: "dashboard",
@@ -30,6 +36,8 @@ const state = {
   data: { "25m": null, "50m": null },
   pricing: null,
   finderHits: [],
+  watches: [],
+  notified: {},
 };
 
 async function fetchJSON(path) {
@@ -59,6 +67,7 @@ async function load() {
   setupTabs();
   setupTheme();
   setupFinder();
+  setupWatcher();
   setupLinks();
   setupGridTooltip();
   renderPricingStaleBanner();
@@ -66,6 +75,17 @@ async function load() {
   render();
   applyFinderFromURL();
   setInterval(render, 30_000);
+  setInterval(refreshSchedule, SCHEDULE_REFRESH_MS);
+}
+
+async function refreshSchedule() {
+  const [d25, d50] = await Promise.all([
+    fetchJSON(POOL_FILE["25m"]).catch(() => null),
+    fetchJSON(POOL_FILE["50m"]).catch(() => null),
+  ]);
+  if (d25) state.data["25m"] = d25;
+  if (d50) state.data["50m"] = d50;
+  render();
 }
 
 function applyPoolFromURL() {
@@ -393,12 +413,14 @@ function render() {
 
   if (!data || !data.days || data.days.length === 0) {
     renderEmpty();
+    renderWatcher();
     return;
   }
   renderNow(now, data);
   renderHeatmap(now, data);
   renderTodayBlocks(now, data);
   applyFinderHighlight();
+  renderWatcher();
 }
 
 function renderEmpty() {
@@ -835,6 +857,185 @@ function applyFinderHighlight() {
       if (el) el.classList.add("match");
     }
   }
+}
+
+function loadWatches() {
+  try {
+    const raw = localStorage.getItem(WATCH_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch { return []; }
+}
+function saveWatches() {
+  try { localStorage.setItem(WATCH_KEY, JSON.stringify(state.watches)); } catch {}
+}
+function loadNotified() {
+  try {
+    const raw = localStorage.getItem(NOTIFIED_KEY);
+    const obj = raw ? JSON.parse(raw) : {};
+    return obj && typeof obj === "object" ? obj : {};
+  } catch { return {}; }
+}
+function saveNotified() {
+  try { localStorage.setItem(NOTIFIED_KEY, JSON.stringify(state.notified)); } catch {}
+}
+
+function setupWatcher() {
+  state.watches = loadWatches();
+  state.notified = loadNotified();
+  pruneNotified();
+  const addBtn = document.getElementById("watch-add");
+  if (addBtn) addBtn.addEventListener("click", addWatch);
+  renderWatcherNote();
+}
+
+function pruneNotified() {
+  const now = Date.now();
+  let changed = false;
+  for (const k of Object.keys(state.notified)) {
+    if (now - state.notified[k] > NOTIFIED_TTL_MS) {
+      delete state.notified[k];
+      changed = true;
+    }
+  }
+  if (changed) saveNotified();
+}
+
+function addWatch() {
+  const weekday = document.getElementById("watch-day").value;
+  const fromTime = document.getElementById("watch-from").value || "00:00";
+  const minLanes = Number(document.getElementById("watch-lanes").value);
+  const duration = Number(document.getElementById("watch-len").value);
+  if (!/^\d{2}:\d{2}$/.test(fromTime)) return;
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  state.watches.push({ id, pool: state.pool, weekday, fromTime, minLanes, duration });
+  saveWatches();
+  requestNotifyPermission();
+  renderWatcher();
+}
+
+function removeWatch(id) {
+  state.watches = state.watches.filter(w => w.id !== id);
+  saveWatches();
+  renderWatcher();
+}
+
+function requestNotifyPermission() {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "default") {
+    Notification.requestPermission().then(() => renderWatcherNote()).catch(() => {});
+  }
+}
+
+function renderWatcherNote() {
+  const el = document.getElementById("watcher-note");
+  if (!el) return;
+  if (!("Notification" in window)) {
+    el.textContent = "Prehliadač nepodporuje notifikácie — upozornenia budú viditeľné len pri otvorenej záložke.";
+    el.className = "watcher-note warn";
+    return;
+  }
+  if (Notification.permission === "granted") {
+    el.textContent = "Notifikácie sú povolené. Upozorníme vás, keď sa daný slot uvoľní (kým máte túto záložku otvorenú).";
+    el.className = "watcher-note ok";
+  } else if (Notification.permission === "denied") {
+    el.textContent = "Notifikácie sú zakázané v prehliadači. Povoľte ich v nastaveniach stránky.";
+    el.className = "watcher-note warn";
+  } else {
+    el.textContent = "Pri pridaní prvého upozornenia si vypýtame povolenie pre notifikácie.";
+    el.className = "watcher-note";
+  }
+}
+
+function findMatchForWatch(watch) {
+  const data = state.data[watch.pool];
+  if (!data || !data.days || !data.days.length) return null;
+  const slot = data.slotMinutes;
+  const startMin = toMin(data.dayStart);
+  const fromMin = toMin(watch.fromTime);
+  const need = Math.ceil(watch.duration / slot);
+  const todayIso = todayISO();
+  const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  for (const day of data.days) {
+    if (day.date < todayIso) continue;
+    if (watch.weekday !== "any" && day.weekday !== watch.weekday) continue;
+    const isToday = day.date === todayIso;
+    for (let i = 0; i + need <= day.free.length; i++) {
+      const blockStart = startMin + i * slot;
+      if (blockStart < fromMin) continue;
+      if (isToday && blockStart < nowMin) continue;
+      let ok = true, minL = Infinity;
+      for (let k = 0; k < need; k++) {
+        const v = day.free[i + k];
+        if (v < watch.minLanes) { ok = false; break; }
+        if (v < minL) minL = v;
+      }
+      if (ok) {
+        return {
+          date: day.date,
+          weekday: day.weekday,
+          startMin: blockStart,
+          endMin: blockStart + need * slot,
+          lanes: minL,
+        };
+      }
+    }
+  }
+  return null;
+}
+
+function notifyMatch(watch, match) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  const [, m, d] = match.date.split("-");
+  const dayLabel = WEEKDAY_SHORT[match.weekday] || match.weekday;
+  const title = `Voľné: ${fmt(match.startMin)} · ${match.lanes} ${lanesWord(match.lanes)}`;
+  const body = `${dayLabel} ${d}.${m}. · ${watch.pool} bazén · blok ${fmt(match.startMin)}–${fmt(match.endMin)}`;
+  try {
+    new Notification(title, {
+      body,
+      icon: "icons/icon-192.png",
+      tag: `starz-watch-${watch.id}-${match.date}-${match.startMin}`,
+    });
+  } catch {}
+}
+
+function renderWatcher() {
+  renderWatcherNote();
+  const ul = document.getElementById("watch-list");
+  if (!ul) return;
+  if (!state.watches.length) {
+    ul.innerHTML = "";
+    return;
+  }
+  let notifiedChanged = false;
+  const items = state.watches.map(w => {
+    const match = findMatchForWatch(w);
+    if (match) {
+      const key = `${w.id}:${match.date}:${match.startMin}`;
+      if (!state.notified[key]) {
+        state.notified[key] = Date.now();
+        notifiedChanged = true;
+        notifyMatch(w, match);
+      }
+    }
+    const dayLabel = w.weekday === "any" ? "ľubovoľný deň" : w.weekday;
+    const statusHTML = match
+      ? `<span class="watch-status match">🔔 ${WEEKDAY_SHORT[match.weekday] || match.weekday} ${match.date.slice(8,10)}.${match.date.slice(5,7)}. · ${fmt(match.startMin)} · ${match.lanes} ${lanesWord(match.lanes)}</span>`
+      : `<span class="watch-status">zatiaľ voľné nie je</span>`;
+    return `<li data-id="${w.id}">
+      <span class="watch-crit">${w.pool} · ${dayLabel} · od ${w.fromTime} · ${w.minLanes}+ ${lanesWord(w.minLanes)} · ${w.duration} min</span>
+      ${statusHTML}
+      <button type="button" class="watch-remove" aria-label="Zrušiť upozornenie" title="Zrušiť">×</button>
+    </li>`;
+  });
+  ul.innerHTML = items.join("");
+  ul.querySelectorAll(".watch-remove").forEach(btn => {
+    btn.addEventListener("click", e => {
+      const li = e.target.closest("li");
+      if (li?.dataset.id) removeWatch(li.dataset.id);
+    });
+  });
+  if (notifiedChanged) saveNotified();
 }
 
 function renderPricing() {
