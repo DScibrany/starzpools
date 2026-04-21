@@ -116,8 +116,13 @@ to len ako zoznam vecí, ktoré dávajú zmysel, ak sa projekt bude rozvíjať.
       a pri novej zhode sa pošle lokálna Notifikácia. Pravý „server push"
       nie je možný bez back-endu, takže upozornenia chodia, kým je stránka
       otvorená.)
-- [ ] **Anglická verzia** — jazykový prepínač (sk/en), texty vytiahnuté
-      do `i18n.json`.
+- [x] ~~**Anglická verzia** — jazykový prepínač (sk/en), texty vytiahnuté
+      do `i18n.json`.~~
+      (hotovo — `i18n.json` obsahuje všetky texty v `sk`/`en`, prepínač je
+      v pravom hornom rohu, jazyk sa ukladá do `localStorage` (`starz-lang`)
+      a rešpektuje `?lang=en` v URL. Všetok statický text v `index.html` má
+      `data-i18n*` atribúty, ktoré sa pri prepnutí prekladajú, dynamické
+      texty v `app.js` idú cez `t(key, vars)`.)
 - [x] ~~**Trend obsadenosti** — tab/panel s priemerom voľných dráh po
       hodinách/dňoch za posledných N týždňov (vyžaduje archiváciu
       `schedule.json` snapshotov).~~
