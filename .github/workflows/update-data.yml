@@ -2,8 +2,10 @@ name: Update schedule & pricing
 
 on:
   schedule:
-    # Daily at 04:15 UTC (06:15 Europe/Bratislava in summer, 05:15 in winter)
-    - cron: "15 4 * * *"
+    # Daily at 04:37 UTC (06:37 Europe/Bratislava in summer, 05:37 in winter).
+    # An off-the-hour minute reduces the chance GitHub silently skips the run
+    # during the top-of-hour scheduling congestion window.
+    - cron: "37 4 * * *"
   workflow_dispatch: {}
 
 permissions:
