@@ -48,7 +48,16 @@ async function fetchJSON(path) {
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
+    const hadController = !!navigator.serviceWorker.controller;
     navigator.serviceWorker.register("sw.js").catch(() => {});
+    if (hadController) {
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (reloaded) return;
+        reloaded = true;
+        location.reload();
+      });
+    }
   });
 }
 
