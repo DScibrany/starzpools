@@ -132,8 +132,13 @@ to len ako zoznam vecí, ktoré dávajú zmysel, ak sa projekt bude rozvíjať.
       (hotovo — vyhľadávač sa synchronizuje s URL cez `pool`, `date`, `from`,
       `lanes`, `len`, `today`; tlačidlo „Skopírovať odkaz" vloží aktuálny
       URL do schránky.)
-- [ ] **Print/share karta** — „dnešný plán" ako jedna obrazovka
-      optimalizovaná na screenshot do chatu.
+- [x] ~~**Print/share karta** — „dnešný plán" ako jedna obrazovka
+      optimalizovaná na screenshot do chatu.~~
+      (hotovo — v karte „Dnes" tlačidlo 📸 Zdieľať otvorí modal s kompaktným
+      screenshot-friendly prehľadom všetkých dnešných verejných blokov (časy,
+      voľné dráhy, dĺžka, live/past tag). Modal má „Tlačiť / Uložiť PDF"
+      cez `window.print()` s dedikovaným `@media print` štýlom, ktorý
+      izoluje len kartu na bielom pozadí.)
 - [x] ~~**Automatické mazanie stale Pages environment branches** — keď
       workflow deploynutia spadne, aktuálne treba manuálne upratať
       deployment-branch rule.~~

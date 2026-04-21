@@ -130,6 +130,7 @@ async function load() {
   setupLinks();
   setupGridTooltip();
   setupGridKeyboard();
+  setupShareModal();
   renderPricingStaleBanner();
   renderPricing();
   render();
@@ -854,10 +855,14 @@ function renderTodayBlocks(now, data) {
     : "";
 
   box.innerHTML = `
-    <h3>Dnes · ${day.weekday} ${d}.${m}.</h3>
+    <h3>Dnes · ${day.weekday} ${d}.${m}.
+      <button type="button" class="share-trigger" title="Zdieľať dnešný plán (obrazovka na screenshot)">📸 Zdieľať</button>
+    </h3>
     <ul class="blocks">${rows}</ul>
     ${toggleHtml}
   `;
+
+  box.querySelector(".share-trigger")?.addEventListener("click", openShareCard);
 
   box.querySelectorAll(".ics-btn").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -1212,6 +1217,92 @@ function renderWatcher() {
     });
   });
   if (notifiedChanged) saveNotified();
+}
+
+function buildShareCardHTML(data, now) {
+  const poolLabel = state.pool === "25m" ? "25 m bazén" : "50 m bazén";
+  const dateStr = now.toLocaleDateString("sk-SK", {
+    weekday: "long", day: "numeric", month: "numeric", year: "numeric",
+  });
+  const updatedStr = data?.updated ? `Dáta: ${data.updated}` : "";
+  const headHTML = `
+    <div class="sc-head">
+      <div class="sc-brand">STARZ Pasienky</div>
+      <div class="sc-pool">${poolLabel}</div>
+      <div class="sc-date">${dateStr}</div>
+    </div>`;
+  const footHTML = `
+    <div class="sc-foot">
+      <span class="sc-url">dscibrany.github.io/starzpools</span>
+      ${updatedStr ? `<span class="sc-updated">${updatedStr}</span>` : ""}
+    </div>`;
+  if (!data) {
+    return `${headHTML}<div class="sc-empty">Dáta pre tento bazén nie sú k dispozícii.</div>${footHTML}`;
+  }
+  const iso = todayISO(now);
+  const day = findDay(data, iso);
+  if (!day) {
+    return `${headHTML}<div class="sc-empty">Pre dnešok nie je v rozvrhu záznam.</div>${footHTML}`;
+  }
+  const blocks = collapseBlocks(day.free, data.slotMinutes, toMin(data.dayStart));
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const maxLanes = data.maxLanes;
+  if (!blocks.length) {
+    return `${headHTML}<div class="sc-empty">Dnes nie sú verejné bloky.</div>${footHTML}`;
+  }
+  const rows = blocks.map(b => {
+    const level = levelFor(b.lanes, maxLanes);
+    const isPast = b.endMin <= nowMin;
+    const isLive = nowMin >= b.startMin && nowMin < b.endMin;
+    const lenMin = b.endMin - b.startMin;
+    const lenH = Math.floor(lenMin / 60), lenR = lenMin % 60;
+    const lenStr = lenH ? `${lenH} h${lenR ? " " + lenR + " min" : ""}` : `${lenR} min`;
+    const dotsFilled = "●".repeat(b.lanes);
+    const dotsEmpty = "○".repeat(Math.max(0, maxLanes - b.lanes));
+    const tag = isLive ? '<span class="sc-tag live">prebieha</span>'
+             : isPast ? '<span class="sc-tag past">skončilo</span>' : "";
+    return `<li class="${isPast ? "past" : isLive ? "live" : ""}">
+      <span class="sc-time">${fmt(b.startMin)}–${fmt(b.endMin)}</span>
+      <span class="sc-dur">${lenStr}</span>
+      <span class="sc-lanes lane-${level}">${b.lanes} ${lanesWord(b.lanes)}</span>
+      <span class="sc-dots lane-${level}" aria-hidden="true"><span class="on">${dotsFilled}</span><span class="off">${dotsEmpty}</span></span>
+      ${tag}
+    </li>`;
+  }).join("");
+  return `${headHTML}
+    <ul class="sc-blocks">${rows}</ul>
+    <div class="sc-legend">max ${maxLanes} dráh</div>
+    ${footHTML}`;
+}
+
+function openShareCard() {
+  const modal = document.getElementById("share-modal");
+  const card = document.getElementById("share-card");
+  if (!modal || !card) return;
+  card.innerHTML = buildShareCardHTML(activeData(), new Date());
+  modal.hidden = false;
+  document.body.classList.add("share-open");
+  document.getElementById("share-close")?.focus();
+}
+
+function closeShareCard() {
+  const modal = document.getElementById("share-modal");
+  if (!modal) return;
+  modal.hidden = true;
+  document.body.classList.remove("share-open");
+}
+
+function setupShareModal() {
+  const modal = document.getElementById("share-modal");
+  if (!modal) return;
+  modal.addEventListener("click", (e) => {
+    const t = e.target;
+    if (t && t instanceof Element && t.getAttribute("data-close") === "1") closeShareCard();
+  });
+  document.getElementById("share-print")?.addEventListener("click", () => window.print());
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !modal.hidden) closeShareCard();
+  });
 }
 
 function renderPricing() {

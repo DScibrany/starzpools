@@ -165,6 +165,18 @@
     <span id="updated"></span>
   </footer>
 
+  <div id="share-modal" class="share-modal" hidden>
+    <div class="share-backdrop" data-close="1"></div>
+    <div class="share-dialog" role="dialog" aria-modal="true" aria-labelledby="share-title">
+      <div class="share-card" id="share-card"></div>
+      <div class="share-actions">
+        <button type="button" id="share-print" class="share-btn-primary">Tlačiť / Uložiť PDF</button>
+        <button type="button" id="share-close" class="share-btn-secondary" data-close="1">Zavrieť</button>
+      </div>
+      <div class="share-hint">Tip: obrazovku uložíte cez screenshot na telefóne alebo Shift+Cmd+4 / Win+Shift+S na počítači.</div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>
