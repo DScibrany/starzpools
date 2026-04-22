@@ -546,7 +546,8 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
 .finder-results .hit .price-chip .pc-stale { color: #fbbf24; margin-right: 3px; }
 .finder-results .empty { color: var(--muted); font-size: 13px; padding: 8px 2px; }
 
-.ics-btn {
+.ics-btn,
+.slot-link-btn {
   background: transparent;
   color: var(--muted);
   border: 1px solid var(--line);
@@ -556,10 +557,13 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
   line-height: 1;
   cursor: pointer;
 }
-.ics-btn:hover { color: var(--accent); border-color: var(--accent); }
-.ics-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ics-btn:hover,
+.slot-link-btn:hover { color: var(--accent); border-color: var(--accent); }
+.ics-btn:focus-visible,
+.slot-link-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .finder-results .hit .ics-btn { margin-left: 4px; }
 #today-blocks .blocks .ics-btn { margin-left: auto; }
+#today-blocks .blocks .slot-link-btn { margin-left: 4px; }
 
 .watcher {
   background: var(--panel);
@@ -1066,18 +1070,76 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; }
 }
 .share-card .sc-url { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 
-.share-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.share-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 .share-actions button {
   font: inherit; font-size: 13px; font-weight: 700;
   padding: 8px 14px; border-radius: 8px; cursor: pointer;
 }
 .share-btn-primary { background: var(--accent); color: #02223a; border: 0; }
 .share-btn-primary:hover { filter: brightness(1.1); }
+.share-btn-primary.copied { filter: brightness(1.2); }
 .share-btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--line); }
 .share-btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
 .share-hint {
   text-align: center; font-size: 11px; color: var(--muted);
 }
+
+.slot-card {
+  background:
+    radial-gradient(800px 140px at 0% 0%, rgba(56,189,248,0.18), transparent 60%),
+    var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 22px 22px 18px;
+  color: var(--text);
+  box-shadow: 0 20px 60px -20px rgba(0,0,0,0.6);
+}
+.slot-card .slot-head {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 14px;
+}
+.slot-card .slot-title {
+  font-size: 18px; font-weight: 700; letter-spacing: .02em;
+  text-transform: capitalize;
+}
+.slot-card .slot-pool {
+  font-size: 12px; font-weight: 700;
+  padding: 2px 8px; border-radius: 999px;
+  background: var(--panel-2); color: var(--accent);
+  border: 1px solid var(--line);
+  margin-left: auto;
+}
+.slot-card .slot-lanes {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  margin: 8px 0 12px;
+}
+.slot-card .slot-lanes-big {
+  font-size: 32px; font-weight: 800; font-variant-numeric: tabular-nums;
+  letter-spacing: .02em;
+}
+.slot-card .slot-lanes.lane-1 .slot-lanes-big { color: var(--lane-1); }
+.slot-card .slot-lanes.lane-2 .slot-lanes-big { color: var(--lane-2); }
+.slot-card .slot-lanes.lane-3 .slot-lanes-big { color: var(--lane-3); }
+.slot-card .slot-lanes.lane-4 .slot-lanes-big { color: var(--lane-4); }
+.slot-card .slot-dots { font-size: 18px; letter-spacing: 2px; font-variant-numeric: tabular-nums; }
+.slot-card .slot-dots .on { color: var(--lane-4); }
+.slot-card .slot-dots.lane-1 .on { color: var(--lane-1); }
+.slot-card .slot-dots.lane-2 .on { color: var(--lane-2); }
+.slot-card .slot-dots.lane-3 .on { color: var(--lane-3); }
+.slot-card .slot-dots.lane-4 .on { color: var(--lane-4); }
+.slot-card .slot-dots .off { color: var(--line); }
+.slot-card .slot-lanes-word { color: var(--muted); font-size: 14px; }
+.slot-card .slot-trend {
+  font-size: 13px; color: var(--text);
+  padding: 10px 12px; border-radius: 8px;
+  background: var(--panel-2); border: 1px solid var(--line);
+}
+.slot-card .slot-trend.muted { color: var(--muted); }
+.slot-card .slot-trend.quiet { background: rgba(34, 197, 94, 0.08); border-color: rgba(34, 197, 94, 0.35); color: #86efac; }
+.slot-card .slot-trend.busy { background: rgba(244, 63, 94, 0.1); border-color: rgba(244, 63, 94, 0.4); color: #fda4af; }
+.slot-card .slot-body { padding: 16px 12px; }
 
 @media (max-width: 560px) {
   .share-card { padding: 18px 14px 14px; }

@@ -191,6 +191,19 @@
     <span id="updated"></span>
   </footer>
 
+  <div id="slot-modal" class="share-modal slot-modal" hidden>
+    <div class="share-backdrop" data-close="1"></div>
+    <div class="share-dialog" role="dialog" aria-modal="true" aria-labelledby="slot-title">
+      <div class="slot-card" id="slot-card"></div>
+      <div class="share-actions">
+        <button type="button" id="slot-ics" class="share-btn-secondary" data-i18n="slot.add_to_calendar" hidden>Pridať do kalendára</button>
+        <button type="button" id="slot-fav" class="share-btn-secondary" data-i18n="slot.favorite" hidden>Pridať do obľúbených</button>
+        <button type="button" id="slot-copy" class="share-btn-primary" data-i18n="slot.copy">Skopírovať odkaz</button>
+        <button type="button" id="slot-close" class="share-btn-secondary" data-close="1" data-i18n="share.close">Zavrieť</button>
+      </div>
+    </div>
+  </div>
+
   <div id="share-modal" class="share-modal" hidden>
     <div class="share-backdrop" data-close="1"></div>
     <div class="share-dialog" role="dialog" aria-modal="true" aria-labelledby="share-title">
