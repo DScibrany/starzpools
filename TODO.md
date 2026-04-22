@@ -65,6 +65,37 @@ projekt bude rozvíjať.
 - [ ] **Odber kalendára (`subscribe.ics`)** — denne generovaný ICS feed
       so všetkými verejnými blokmi na 14 dní; jedno-klikové „Pridať do
       Google kalendára" miesto per-blok ICS.
+- [ ] **Check-in / check-out do bazéna** — dobrovoľný opt-in flow, kde
+      pri príchode používateľ klikne „som tu (25 m / 50 m)" a pri odchode
+      „odišiel som". Agregácia dáva novú dimenziu: reálna obsadenosť
+      budovy (šatne, sprchy, ľudia v bazéne), nielen dráhy z oficiálneho
+      STARZ feedu. V UI by sa zobrazil chip typu „~N plavcov je tu teraz"
+      v karte „Práve teraz" a druhá farebná dimenzia v trende.
+      Overenie proti fake check-inom „z gauča" kombinuje dva faktory:
+      - **(a) Geolokácia** — `navigator.geolocation` musí vrátiť polohu
+        v polomere ~100 m od bazéna. Dá sa spoofovať cez devtools,
+        ale odfiltruje náhodné zlo a je zadarmo.
+      - **(b) Rotujúci QR na plavárni** — displej pri vstupe renderuje
+        QR obmieňaný napr. každých 60 s, kódujúci
+        `{ pool, issued_at, HMAC(server_secret, pool || issued_at) }`.
+        Backend overí HMAC s držaným `secret`-om, akceptuje len čerstvé
+        tokeny (±5 min) a cachuje už použité HMACy (replay-protection).
+
+      Ideálne vyžadovať oba faktory naraz (geo + QR), aby bola bariéra
+      pre manipuláciu heatmapy aspoň primeraná. Tradeoffs:
+      - **Vyžaduje backend** — counter, auth, rate-limit, auto check-out
+        „zabudnutých" sessions po ~3 h. Rozbíja „static only" puritu
+        (rovnaký tradeoff ako `Reálne Web Push`); raz postavený backend
+        by sa dal zdieľať medzi týmito dvoma featurami.
+      - **QR treba niekde vystaviť** — buď samostatný displej / tablet
+        na plavárni (vyžaduje spoluprácu so STARZ), alebo tenký webpage,
+        ktorý QR renderuje a prevádzka ho niekde premieta.
+      - **Privacy** — žiadne user-identifikátory; iba anonymné eventy
+        `{ pool, in|out, timestamp }`. Rate-limit per device-id uložený
+        v `localStorage`.
+      - **Value** — STARZ publikuje voľné dráhy, ale ticho alebo hluk
+        v šatni a preplnenosť sprch dáta nezachytia. Tento mechanizmus
+        dopĺňa úplne novú, inak nedostupnú dimenziu.
 - [ ] **Reálne Web Push cez Cloudflare Worker** — notifikácie chodia aj
       keď je tab zatvorený. Súčasný in-tab watcher to nevie. Tradeoff:
       rozbíja „static only" puritu (VAPID + KV store pre subscriptions),
