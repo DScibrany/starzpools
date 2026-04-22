@@ -6,6 +6,51 @@ projekt bude rozvíjať.
 
 ## Otvorené
 
+### Chyby / UI polish
+
+- [ ] **Mobilné zobrazenie blokov a časov** — na úzkych obrazovkách
+      (napr. iPhone 13 mini, ~375 px) text času v blokoch karty „Dnes" /
+      výsledkov vyhľadávača presahuje rámec bloku a rozbíja layout. Tlačidlo
+      „Pridať do kalendára" (📅) v takom zobrazení nie je viditeľné vôbec
+      (pravdepodobne orezané pri pravom okraji). Prejsť `styles.css` +
+      `index.html` cez devtools na 320/375/390 px viewporte, upraviť
+      breakpointy, doladiť flex/grid tak, aby akcie (📅, ★, 📸) ostali
+      viditeľné a časy sa lámali alebo skracovali čisto.
+
+### Nové používateľské funkcie
+
+- [ ] **„Neobvykle ticho / obsadené" odznak** — v karte „Práve teraz"
+      porovnať aktuálny počet voľných dráh s priemerom z `trend.json` pre
+      daný (pool, weekday, slot) a zobraziť ±delta alebo chip
+      „nezvyčajne ticho / obsadené". Robí trend dáta akčnými bez prepnutia
+      záložky. Treba rozumný prah (napr. z-score nad rozptylom), aby sa
+      odznak nespínal stále.
+- [ ] **Sparkline v karte „Dnes"** — inline mini-graf dnešnej krivky voľných
+      dráh s bodkou „teraz". Prehľad dňa bez skoku do heatmapy. Triviálne
+      (SVG polyline zo 76 hodnôt), pozor len na mobilnú hustotu.
+- [ ] **Kalkulačka ceny** — typ vstupu × dĺžka × všedný deň/sviatok → EUR.
+      `pricing.json` dnes slúži len na zobrazenie tabuľky; tento upgrade
+      z neho robí nástroj. Pozor na reálne STARZ pravidlá (permanentky,
+      zľavy, detské/seniorské sadzby).
+- [ ] **Chips pre sviatky v UI** — ak sa dátum zhoduje s
+      `pricing.json.holidays`, označiť deň v heatmape / karte „Dnes"
+      odznakom „sviatok" a pripojiť sviatočné hodiny/ceny. Komplementárne
+      k „Trend citlivý na sviatky" (to rieši dátovú stranu).
+- [ ] **Deep-link na konkrétny slot** — `?slot=YYYY-MM-DDTHH:MM` otvorí
+      modal s detailom bloku (čas, dráhy, priemer z trendu, ICS, favorit).
+      Prirodzené rozšírenie existujúceho share-link pattern-u.
+- [ ] **Kliknutie na bunku heatmapy → detail modal** — priemer z trendu,
+      dnešná hodnota, favorit, ICS, deep-link. Odomkne trend dáta bez
+      tab-switchu. Treba skĺbiť s existujúcou klávesovou navigáciou gridu
+      (`role="grid"` + roving-tabindex).
+- [ ] **Flexibilný watcher** — „ktorýkoľvek pracovný večer 18–20 s
+      ≥2 dráhami ≥60 min" namiesto presného dňa+času. Súčasný watcher je
+      príliš rigidný pre reálne plánovanie. Scan priestoru je malý
+      (14 dní × 76 slotov), zostáva client-only.
+- [ ] **Mesačný prehľad (1 bunka / deň)** — farebná mriežka nad rámec
+      14 dní, ktorá na úrovni celého dňa ukáže „tichý / obsadený",
+      s priemerom z `trend.json`. Pre rozhodnutia typu „oplatí sa mi
+      permanentka tento mesiac?".
 - [ ] **Ďalšie STARZ bazény** — Rosnička, Delfín, Tehelné pole; rovnaký
       formát `schedule*.json`, len s iným pool-tabom.
 - [ ] **Odporúčač najlepšieho času** — využiť `trend.json` a ponúknuť
@@ -20,8 +65,15 @@ projekt bude rozvíjať.
 - [ ] **Odber kalendára (`subscribe.ics`)** — denne generovaný ICS feed
       so všetkými verejnými blokmi na 14 dní; jedno-klikové „Pridať do
       Google kalendára" miesto per-blok ICS.
+- [ ] **Reálne Web Push cez Cloudflare Worker** — notifikácie chodia aj
+      keď je tab zatvorený. Súčasný in-tab watcher to nevie. Tradeoff:
+      rozbíja „static only" puritu (VAPID + KV store pre subscriptions),
+      ale z UX pohľadu je to najväčší skok z tohto zoznamu.
+
+### Interné
+
 - [ ] **Rozdeliť `app.js`** — ~1700 riadkov; ES moduly (render / data /
-      watcher / i18n) by zlepšili orientáciu. (Interné — bez dopadu na UX.)
+      watcher / i18n) by zlepšili orientáciu. Bez priameho dopadu na UX.
 
 ## Hotové — používateľské funkcie
 
