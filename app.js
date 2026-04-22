@@ -474,6 +474,50 @@ function renderBandChip(el, band) {
   el.textContent = bandLabel(band);
 }
 
+function renderUnusualChip(el, delta) {
+  if (!el) return;
+  const threshold = 1.5;
+  if (delta == null || Math.abs(delta) < threshold) {
+    el.hidden = true;
+    el.className = "unusual-chip";
+    el.textContent = "";
+    return;
+  }
+  const quiet = delta > 0;
+  const rounded = Math.round(Math.abs(delta) * 10) / 10;
+  const deltaStr = `${delta > 0 ? "+" : "−"}${rounded.toFixed(1)}`;
+  el.hidden = false;
+  el.className = `unusual-chip ${quiet ? "quiet" : "busy"}`;
+  el.textContent = t(quiet ? "now.unusual.quiet" : "now.unusual.busy", { delta: deltaStr });
+}
+
+function trendAvgFor(pool, weekday, idx) {
+  const bucket = state.trend?.pools?.[pool]?.byWeekday?.[weekday];
+  if (!bucket || (bucket.samples || 0) < 2) return null;
+  const v = bucket.avg?.[idx];
+  return (typeof v === "number") ? v : null;
+}
+
+function todaySparkHTML(day, data, nowIdx) {
+  const free = day?.free || [];
+  const n = free.length;
+  const max = data?.maxLanes || 4;
+  if (n < 2 || !free.some(v => v > 0)) return "";
+  const pts = [];
+  for (let i = 0; i < n; i++) {
+    const x = (i / (n - 1)) * 100;
+    const y = (1 - Math.max(0, Math.min(free[i], max)) / max) * 100;
+    pts.push(`${x.toFixed(2)},${y.toFixed(2)}`);
+  }
+  const nowLine = (nowIdx >= 0 && nowIdx < n)
+    ? `<line class="spark-now" x1="${((nowIdx / (n - 1)) * 100).toFixed(2)}" x2="${((nowIdx / (n - 1)) * 100).toFixed(2)}" y1="0" y2="100" vector-effect="non-scaling-stroke"/>`
+    : "";
+  return `<svg class="today-spark" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="${t("today.spark_aria")}" role="img">
+    <polyline class="spark-line" points="${pts.join(" ")}" fill="none" vector-effect="non-scaling-stroke"/>
+    ${nowLine}
+  </svg>`;
+}
+
 function isPricingStale() {
   return state.pricing?.status?.upToDate === false;
 }
@@ -634,6 +678,7 @@ function renderEmpty() {
   const next = document.getElementById("now-next");
   const pill = document.getElementById("status-pill");
   const card = document.getElementById("now-card");
+  renderUnusualChip(document.getElementById("unusual-chip"), null);
   card.classList.remove("live");
   pill.textContent = t("now.nodata");
   pill.className = "pill";
@@ -654,10 +699,12 @@ function renderNow(now, data) {
   const next = document.getElementById("now-next");
   const card = document.getElementById("now-card");
   const chip = document.getElementById("band-chip");
+  const unusualChip = document.getElementById("unusual-chip");
   const pricesBox = document.getElementById("now-prices");
 
   if (!day) {
     renderBandChip(chip, "outside");
+    renderUnusualChip(unusualChip, null);
     card.classList.remove("live");
     pill.textContent = t("now.outofschedule");
     pill.className = "pill";
@@ -674,6 +721,8 @@ function renderNow(now, data) {
   const currentFree = (idx >= 0 && idx < day.free.length) ? day.free[idx] : 0;
   const band = currentFree > 0 ? bandForDate(now) : "outside";
   renderBandChip(chip, band);
+  const avg = (currentFree > 0) ? trendAvgFor(state.pool, day.weekday, idx) : null;
+  renderUnusualChip(unusualChip, avg != null ? currentFree - avg : null);
 
   big.innerHTML = `${currentFree}<span class="of"> / ${data.maxLanes}</span>`;
   if (currentFree > 0) {
@@ -981,10 +1030,13 @@ function renderTodayBlocks(now, data) {
     ? `<button type="button" class="blocks-toggle" aria-expanded="false">${t("today.show_all", { n: hiddenCount })}</button>`
     : "";
 
+  const sparkHtml = todaySparkHTML(day, data, slotIndexForNow(data));
+
   box.innerHTML = `
     <h3>${t("today.title")} · ${weekdayLabel(day.weekday)} ${d}.${m}.
       <button type="button" class="share-trigger" title="${t("today.share_tip")}">${t("today.share")}</button>
     </h3>
+    ${sparkHtml}
     <ul class="blocks">${rows}</ul>
     ${toggleHtml}
   `;

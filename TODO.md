@@ -8,15 +8,6 @@ projekt bude rozvíjať.
 
 ### Nové používateľské funkcie
 
-- [ ] **„Neobvykle ticho / obsadené" odznak** — v karte „Práve teraz"
-      porovnať aktuálny počet voľných dráh s priemerom z `trend.json` pre
-      daný (pool, weekday, slot) a zobraziť ±delta alebo chip
-      „nezvyčajne ticho / obsadené". Robí trend dáta akčnými bez prepnutia
-      záložky. Treba rozumný prah (napr. z-score nad rozptylom), aby sa
-      odznak nespínal stále.
-- [ ] **Sparkline v karte „Dnes"** — inline mini-graf dnešnej krivky voľných
-      dráh s bodkou „teraz". Prehľad dňa bez skoku do heatmapy. Triviálne
-      (SVG polyline zo 76 hodnôt), pozor len na mobilnú hustotu.
 - [ ] **Kalkulačka ceny** — typ vstupu × dĺžka × všedný deň/sviatok → EUR.
       `pricing.json` dnes slúži len na zobrazenie tabuľky; tento upgrade
       z neho robí nástroj. Pozor na reálne STARZ pravidlá (permanentky,
@@ -99,6 +90,22 @@ projekt bude rozvíjať.
 
 Tieto položky sú pokryté aj v sekcii **Funkcie** hlavného README.
 
+- [x] **„Neobvykle ticho / obsadené" odznak** — v karte „Práve teraz" sa
+      popri band-chip zobrazí `unusual-chip`, keď sa aktuálny počet voľných
+      dráh líši od priemeru z `trend.json` pre daný (pool, weekday, slot)
+      aspoň o 1.5 dráhy. Chip je zelený („nezvyčajne voľno · +N.N") alebo
+      červený („nezvyčajne obsadené · −N.N"). Vyžaduje aspoň 2 vzorky
+      v bucketi, inak sa neukazuje, takže fluke snapshot nerozbije UX.
+      Logika v `renderNow` → `trendAvgFor` + `renderUnusualChip`; i18n
+      kľúče `now.unusual.quiet` / `now.unusual.busy`.
+- [x] **Sparkline v karte „Dnes"** — inline SVG polyline zo 76 hodnôt
+      `day.free` tesne pod nadpisom karty „Dnes", so zvislou žltou čiarou
+      v aktuálnom slote. `viewBox="0 0 100 100"` +
+      `preserveAspectRatio="none"` + `vector-effect="non-scaling-stroke"`
+      zabezpečujú čistý stretch cez celú šírku karty bez deformácie
+      hrúbky čiary. Skrýva sa, ak `day.free` je prázdne alebo obsahuje
+      samé 0. Helper `todaySparkHTML` v `app.js`, štýly `.today-spark`
+      v `styles.css`.
 - [x] **Mobilné zobrazenie blokov a časov** — na úzkych obrazovkách
       (~375 px, iPhone 13 mini) `.blocks li` karty „Dnes" a
       `.finder-results .hit` mali súčet `min-width`-ov detí väčší než
