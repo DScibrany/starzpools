@@ -687,29 +687,6 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
 
 .grid-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); position: relative; }
 
-#grid-tooltip {
-  position: absolute;
-  z-index: 10;
-  padding: 6px 10px;
-  font-size: 12px;
-  line-height: 1.3;
-  color: var(--text);
-  background: #0a1c2e;
-  border: 1px solid var(--accent);
-  border-radius: 6px;
-  white-space: nowrap;
-  pointer-events: none;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
-}
-#grid-tooltip[hidden] { display: none; }
-
-.cell.selected {
-  position: relative;
-  z-index: 4;
-  outline: 2px solid #ffffff;
-  outline-offset: -2px;
-}
-
 .grid {
   display: grid;
   gap: 1px;
@@ -724,6 +701,7 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
   color: var(--muted);
   display: flex; align-items: center; justify-content: center;
 }
+.cell[role='gridcell'] { cursor: pointer; }
 .cell.header { font-weight: 600; color: var(--text); background: var(--panel-2); min-height: 22px; }
 .cell.tick { color: var(--muted); font-size: 10px; }
 .cell.tick.hour { color: var(--text); border-left: 1px solid var(--line); }

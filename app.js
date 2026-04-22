@@ -181,7 +181,7 @@ async function load() {
   populateWeekdayOptions();
   refreshLaneOptions();
   setupLinks();
-  setupGridTooltip();
+  setupGridCellClick();
   setupGridKeyboard();
   setupShareModal();
   setupSlotModal();
@@ -869,8 +869,6 @@ function renderHeatmap(now, data) {
   if (initialFocusCell) initialFocusCell.setAttribute("tabindex", "0");
 
   renderLegend(data.maxLanes);
-  const tip = document.getElementById("grid-tooltip");
-  if (tip) { tip.hidden = true; tip.dataset.forCell = ""; }
 }
 
 function setupGridKeyboard() {
@@ -905,54 +903,18 @@ function setupGridKeyboard() {
   });
 }
 
-function setupGridTooltip() {
-  const wrap = document.querySelector(".grid-wrap");
-  if (!wrap) return;
-  const tip = document.createElement("div");
-  tip.id = "grid-tooltip";
-  tip.hidden = true;
-  wrap.appendChild(tip);
-
-  const clearSelected = () => {
-    wrap.querySelectorAll(".cell.selected").forEach(el => el.classList.remove("selected"));
-  };
-  const hide = () => {
-    tip.hidden = true;
-    tip.dataset.forCell = "";
-    clearSelected();
-  };
-
-  wrap.addEventListener("click", (e) => {
-    const cell = e.target.closest(".cell[data-date]");
-    if (!cell) { hide(); return; }
-    const key = `${cell.dataset.date}:${cell.dataset.col}`;
-    if (!tip.hidden && tip.dataset.forCell === key) { hide(); return; }
-    clearSelected();
-    cell.classList.add("selected");
-    tip.textContent = cell.title || "";
-    tip.hidden = false;
-    tip.dataset.forCell = key;
-    requestAnimationFrame(() => {
-      const cr = cell.getBoundingClientRect();
-      const wr = wrap.getBoundingClientRect();
-      const tipW = tip.offsetWidth;
-      const tipH = tip.offsetHeight;
-      let left = cr.left - wr.left + wrap.scrollLeft + cr.width / 2 - tipW / 2;
-      const maxLeft = wrap.scrollLeft + wrap.clientWidth - tipW - 6;
-      left = Math.max(wrap.scrollLeft + 6, Math.min(left, maxLeft));
-      let top = cr.top - wr.top + wrap.scrollTop - tipH - 8;
-      if (top < wrap.scrollTop + 2) top = cr.bottom - wr.top + wrap.scrollTop + 8;
-      tip.style.left = left + "px";
-      tip.style.top = top + "px";
-    });
+function setupGridCellClick() {
+  const grid = document.getElementById("grid");
+  if (!grid) return;
+  grid.addEventListener("click", (e) => {
+    const cell = e.target.closest(".cell[role='gridcell'][data-date][data-col]");
+    if (!cell) return;
+    const data = activeData();
+    if (!data) return;
+    const col = Number(cell.dataset.col);
+    const startMin = toMin(data.dayStart) + col * data.slotMinutes;
+    openSlotModal(cell.dataset.date, startMin);
   });
-
-  document.addEventListener("click", (e) => {
-    if (tip.hidden) return;
-    if (!e.target.closest(".grid-wrap")) hide();
-  });
-  wrap.addEventListener("scroll", hide, { passive: true });
-  window.addEventListener("resize", hide);
 }
 
 function renderLegend(max) {
