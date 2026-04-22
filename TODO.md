@@ -16,10 +16,6 @@ projekt bude rozvíjať.
       `pricing.json.holidays`, označiť deň v heatmape / karte „Dnes"
       odznakom „sviatok" a pripojiť sviatočné hodiny/ceny. Komplementárne
       k „Trend citlivý na sviatky" (to rieši dátovú stranu).
-- [ ] **Kliknutie na bunku heatmapy → detail modal** — priemer z trendu,
-      dnešná hodnota, favorit, ICS, deep-link. Odomkne trend dáta bez
-      tab-switchu. Treba skĺbiť s existujúcou klávesovou navigáciou gridu
-      (`role="grid"` + roving-tabindex).
 - [ ] **Flexibilný watcher** — „ktorýkoľvek pracovný večer 18–20 s
       ≥2 dráhami ≥60 min" namiesto presného dňa+času. Súčasný watcher je
       príliš rigidný pre reálne plánovanie. Scan priestoru je malý
@@ -87,6 +83,18 @@ projekt bude rozvíjať.
 
 Tieto položky sú pokryté aj v sekcii **Funkcie** hlavného README.
 
+- [x] **Kliknutie na bunku heatmapy → detail modal** — každá bunka
+      heatmapy `role="gridcell"` je teraz klikateľná a volá existujúci
+      `openSlotModal(iso, startMin)`. `data-col` sa prevádza na `startMin`
+      cez `toMin(data.dayStart) + col * data.slotMinutes`, takže modal
+      dostane presne ten 15-min slot, na ktorý užívateľ klikol.
+      Existujúca `setupGridKeyboard` klávesová navigácia už volá
+      `cell.click()` pri Enter/Space, takže Enter na zvolenej bunke
+      otvorí modal bez ďalších úprav. Pôvodný custom `#grid-tooltip`
+      (touch-friendly tooltip) je nahradený modalom (natívny `title`
+      atribút ostáva pre desktop hover); sprievodné `.cell.selected`
+      štýly odstránené ako mŕtvy kód. `.cell[role='gridcell']` dostal
+      `cursor: pointer` pre visual affordance.
 - [x] **Deep-link na konkrétny slot** — `?slot=YYYY-MM-DDTHH:MM` otvorí
       modal s detailom bloku: dátum + deň + časový rozsah, aktuálny počet
       voľných dráh (plus farebná úroveň + bodky), priemer z `trend.json`
