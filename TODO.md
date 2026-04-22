@@ -12,10 +12,6 @@ projekt bude rozvíjať.
       `pricing.json` dnes slúži len na zobrazenie tabuľky; tento upgrade
       z neho robí nástroj. Pozor na reálne STARZ pravidlá (permanentky,
       zľavy, detské/seniorské sadzby).
-- [ ] **Chips pre sviatky v UI** — ak sa dátum zhoduje s
-      `pricing.json.holidays`, označiť deň v heatmape / karte „Dnes"
-      odznakom „sviatok" a pripojiť sviatočné hodiny/ceny. Komplementárne
-      k „Trend citlivý na sviatky" (to rieši dátovú stranu).
 - [ ] **Flexibilný watcher** — „ktorýkoľvek pracovný večer 18–20 s
       ≥2 dráhami ≥60 min" namiesto presného dňa+času. Súčasný watcher je
       príliš rigidný pre reálne plánovanie. Scan priestoru je malý
@@ -83,6 +79,16 @@ projekt bude rozvíjať.
 
 Tieto položky sú pokryté aj v sekcii **Funkcie** hlavného README.
 
+- [x] **Chips pre sviatky v UI** — `isHoliday(iso)` helper už existoval
+      (kontroluje `pricing.json.holidays`). Nový `.holiday-chip` CSS
+      pattern (farebne odlíšený od band-chip a unusual-chip) sa zobrazí
+      v karte „Práve teraz", karte „Dnes", v hlavičke slot detail modalu
+      a v share karte, keď je dnešný / zobrazený deň sviatok. V heatmape
+      dostane rowhead pre sviatočný deň subtílny fialový tint a ✦ mark
+      vedľa prípadného ★ fav-marku. Cell `title` + `aria-label`
+      (teda aj text v popupe) získajú sufix „· sviatok". Bez zmeny
+      v dátach — `pricing.json.holidays` je momentálne prázdne, chipy
+      sa zapnú automaticky, keď STARZ dáta pridá sviatky.
 - [x] **Kliknutie na bunku heatmapy → detail modal** — každá bunka
       heatmapy `role="gridcell"` je teraz klikateľná a volá existujúci
       `openSlotModal(iso, startMin)`. `data-col` sa prevádza na `startMin`

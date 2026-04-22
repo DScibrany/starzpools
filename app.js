@@ -478,6 +478,17 @@ function renderBandChip(el, band) {
   el.textContent = bandLabel(band);
 }
 
+function renderHolidayChip(el, showHoliday) {
+  if (!el) return;
+  if (showHoliday) {
+    el.hidden = false;
+    el.textContent = t("holiday.chip");
+  } else {
+    el.hidden = true;
+    el.textContent = "";
+  }
+}
+
 function renderUnusualChip(el, delta) {
   if (!el) return;
   const threshold = 1.5;
@@ -683,6 +694,7 @@ function renderEmpty() {
   const pill = document.getElementById("status-pill");
   const card = document.getElementById("now-card");
   renderUnusualChip(document.getElementById("unusual-chip"), null);
+  renderHolidayChip(document.getElementById("holiday-chip"), false);
   card.classList.remove("live");
   pill.textContent = t("now.nodata");
   pill.className = "pill";
@@ -705,11 +717,13 @@ function renderNow(now, data) {
   const card = document.getElementById("now-card");
   const chip = document.getElementById("band-chip");
   const unusualChip = document.getElementById("unusual-chip");
+  const holidayChip = document.getElementById("holiday-chip");
   const pricesBox = document.getElementById("now-prices");
 
   if (!day) {
     renderBandChip(chip, "outside");
     renderUnusualChip(unusualChip, null);
+    renderHolidayChip(holidayChip, false);
     card.classList.remove("live");
     pill.textContent = t("now.outofschedule");
     pill.className = "pill";
@@ -727,6 +741,7 @@ function renderNow(now, data) {
   const currentFree = (idx >= 0 && idx < day.free.length) ? day.free[idx] : 0;
   const band = currentFree > 0 ? bandForDate(now) : "outside";
   renderBandChip(chip, band);
+  renderHolidayChip(holidayChip, isHoliday(day.date));
   const avg = (currentFree > 0) ? trendAvgFor(state.pool, day.weekday, idx) : null;
   renderUnusualChip(unusualChip, avg != null ? currentFree - avg : null);
 
@@ -825,14 +840,15 @@ function renderHeatmap(now, data) {
     const isToday = day.date === todayIso;
     const head = document.createElement("div");
     const hasFav = rowHasFavorite(state.pool, day.weekday);
-    head.className = "cell rowhead" + (isToday ? " today" : "") + (hasFav ? " has-fav" : "");
+    const isHol = isHoliday(day.date);
+    head.className = "cell rowhead" + (isToday ? " today" : "") + (hasFav ? " has-fav" : "") + (isHol ? " holiday" : "");
     head.setAttribute("role", "rowheader");
     head.setAttribute("aria-rowindex", String(r + 2));
     head.setAttribute("aria-colindex", "1");
     const [, m, d] = day.date.split("-");
     const dow = weekdayShort(day.weekday);
-    head.setAttribute("aria-label", `${weekdayLabel(day.weekday)} ${d}.${m}.${hasFav ? t("grid.aria_row_fav") : ""}`);
-    head.innerHTML = `<span class="dow">${dow}</span> <span class="date">${d}.${m}.</span>${hasFav ? '<span class="fav-mark" aria-hidden="true">★</span>' : ""}`;
+    head.setAttribute("aria-label", `${weekdayLabel(day.weekday)} ${d}.${m}.${isHol ? t("grid.aria_row_holiday") : ""}${hasFav ? t("grid.aria_row_fav") : ""}`);
+    head.innerHTML = `<span class="dow">${dow}</span> <span class="date">${d}.${m}.</span>${isHol ? `<span class="hol-mark" title="${t("holiday.chip")}" aria-hidden="true">✦</span>` : ""}${hasFav ? '<span class="fav-mark" aria-hidden="true">★</span>' : ""}`;
     grid.appendChild(head);
 
     for (let c = 0; c < cols; c++) {
@@ -855,8 +871,9 @@ function renderHeatmap(now, data) {
       const lanesShort = raw === 0 ? t("grid.no_free_lanes") : t("grid.lanes_short", { free: raw, max: data.maxLanes });
       const isFavCell = cellFavoritedFor(state.pool, day.weekday, s);
       if (isFavCell) el.classList.add("fav");
-      el.title = t("grid.tooltip", { weekday: weekdayLabel(day.weekday), date: `${d}.${m}.`, from: fmt(s), to: fmt(s + slot), lanes: lanesShort }) + (isFavCell ? " · ★" : "");
-      el.setAttribute("aria-label", t("grid.aria_cell", { weekday: weekdayLabel(day.weekday), date: `${d}.${m}.`, time: fmt(s), lanes: lanesText }) + (isFavCell ? " " + t("grid.aria_fav") : ""));
+      const holSuffix = isHoliday(day.date) ? ` · ${t("holiday.chip")}` : "";
+      el.title = t("grid.tooltip", { weekday: weekdayLabel(day.weekday), date: `${d}.${m}.`, from: fmt(s), to: fmt(s + slot), lanes: lanesShort }) + holSuffix + (isFavCell ? " · ★" : "");
+      el.setAttribute("aria-label", t("grid.aria_cell", { weekday: weekdayLabel(day.weekday), date: `${d}.${m}.`, time: fmt(s), lanes: lanesText }) + (isFavCell ? " " + t("grid.aria_fav") : "") + (isHoliday(day.date) ? t("grid.aria_row_holiday") : ""));
       el.dataset.date = day.date;
       el.dataset.row = String(r);
       el.dataset.col = String(c);
@@ -1079,9 +1096,10 @@ function renderTodayBlocks(now, data) {
     : "";
 
   const sparkHtml = todaySparkHTML(day, data, slotIndexForNow(data));
+  const holidayChip = isHoliday(day.date) ? `<span class="holiday-chip">${t("holiday.chip")}</span>` : "";
 
   box.innerHTML = `
-    <h3>${t("today.title")} · ${weekdayLabel(day.weekday)} ${d}.${m}.
+    <h3>${t("today.title")} · ${weekdayLabel(day.weekday)} ${d}.${m}. ${holidayChip}
       <button type="button" class="share-trigger" title="${t("today.share_tip")}">${t("today.share")}</button>
     </h3>
     ${sparkHtml}
@@ -1516,10 +1534,13 @@ function buildShareCardHTML(data, now) {
     weekday: "long", day: "numeric", month: "numeric", year: "numeric",
   });
   const updatedStr = data?.updated ? t("share.data", { date: data.updated }) : "";
+  const todayIso = todayISO(now);
+  const holChip = isHoliday(todayIso) ? `<span class="holiday-chip">${t("holiday.chip")}</span>` : "";
   const headHTML = `
     <div class="sc-head">
       <div class="sc-brand">${t("share.brand")}</div>
       <div class="sc-pool">${poolLabel}</div>
+      ${holChip}
       <div class="sc-date">${dateStr}</div>
     </div>`;
   const footHTML = `
@@ -1656,6 +1677,7 @@ function openSlotModal(iso, startMin) {
         <div class="slot-head">
           <div class="slot-title" id="slot-title">${weekdayLabel(weekday)} · ${d}.${m}. · ${fmt(startMin)}</div>
           <span class="slot-pool">${state.pool}</span>
+          ${isHoliday(iso) ? `<span class="holiday-chip">${t("holiday.chip")}</span>` : ""}
         </div>
         <div class="slot-body muted">${t("slot.closed")}</div>
       `;
@@ -1685,6 +1707,7 @@ function openSlotModal(iso, startMin) {
         <div class="slot-head">
           <div class="slot-title" id="slot-title">${weekdayLabel(weekday)} · ${d}.${m}. · ${fmt(block.startMin)}–${fmt(block.endMin)}</div>
           <span class="slot-pool">${state.pool}</span>
+          ${isHoliday(iso) ? `<span class="holiday-chip">${t("holiday.chip")}</span>` : ""}
         </div>
         <div class="slot-lanes lane-${level}">
           <span class="slot-lanes-big">${block.lanes} / ${maxLanes}</span>
