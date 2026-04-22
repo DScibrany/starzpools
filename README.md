@@ -139,6 +139,10 @@ Cenník — každá bunka má ⚠:
   sa medzitým vykreslia z `localStorage` cache.
 - **Stale cenník** — keď SHA-256 aktuálneho PDF cenníka na stránke bazéna
   nesedí s referenčnou kópiou, zobrazí sa žltý banner a ⚠ pri každej cene.
+- **Chips pre sviatky** — keď je dátum v `pricing.json.holidays`, karta
+  „Práve teraz", karta „Dnes", slot detail modal a share karta dostanú
+  fialový odznak **sviatok**; v heatmape má sviatočný deň subtílny tint
+  a ✦ mark v rowheadi.
 - **Slovenčina / Angličtina** — prepínač sk/en v hlavičke, jazyk sa ukladá
   do `localStorage` a rešpektuje `?lang=en` v URL.
 - **Prístupnosť** — heatmapa má `role="grid"` + `aria-label` na bunkách,
