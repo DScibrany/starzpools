@@ -693,6 +693,7 @@ function renderEmpty() {
   const next = document.getElementById("now-next");
   const pill = document.getElementById("status-pill");
   const card = document.getElementById("now-card");
+  const dots = document.getElementById("now-dots");
   renderUnusualChip(document.getElementById("unusual-chip"), null);
   renderHolidayChip(document.getElementById("holiday-chip"), false);
   card.classList.remove("live");
@@ -700,6 +701,7 @@ function renderEmpty() {
   pill.className = "pill";
   big.className = "big";
   big.textContent = "—";
+  if (dots) { dots.className = "now-dots"; dots.innerHTML = ""; }
   sub.textContent = t("empty.no_pool_data");
   next.textContent = t("empty.fill_schedule");
   document.getElementById("today-blocks").innerHTML =
@@ -719,6 +721,7 @@ function renderNow(now, data) {
   const unusualChip = document.getElementById("unusual-chip");
   const holidayChip = document.getElementById("holiday-chip");
   const pricesBox = document.getElementById("now-prices");
+  const dots = document.getElementById("now-dots");
 
   if (!day) {
     renderBandChip(chip, "outside");
@@ -729,6 +732,7 @@ function renderNow(now, data) {
     pill.className = "pill";
     big.className = "big";
     big.textContent = "—";
+    if (dots) { dots.className = "now-dots"; dots.innerHTML = ""; }
     sub.textContent = t("now.noscheduletoday");
     next.textContent = "";
     if (pricesBox) pricesBox.innerHTML = "";
@@ -748,6 +752,12 @@ function renderNow(now, data) {
   const level = currentFree > 0 ? levelFor(currentFree, data.maxLanes) : 0;
   big.className = `big lane-${level}`;
   big.innerHTML = `${currentFree}<span class="of"> / ${data.maxLanes}</span>`;
+  if (dots) {
+    const dotsOn = "●".repeat(currentFree);
+    const dotsOff = "○".repeat(Math.max(0, data.maxLanes - currentFree));
+    dots.className = `now-dots lane-${level}`;
+    dots.innerHTML = `<span class="on">${dotsOn}</span><span class="off">${dotsOff}</span>`;
+  }
   if (currentFree > 0) {
     pill.textContent = t("now.open");
     pill.className = "pill open";
