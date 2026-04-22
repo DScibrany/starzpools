@@ -1681,7 +1681,7 @@ function openSlotModal(iso, startMin) {
     if (!block) {
       card.innerHTML = `
         <div class="slot-head">
-          <div class="slot-title" id="slot-title">${weekdayLabel(weekday)} · ${d}.${m}. · ${fmt(startMin)}</div>
+          <div class="slot-title" id="slot-title">${weekdayLabel(weekday)} · ${fmt(startMin)}</div>
           <span class="slot-pool">${state.pool}</span>
         </div>
         <div class="slot-body muted">${t("slot.closed")}</div>
@@ -1710,7 +1710,7 @@ function openSlotModal(iso, startMin) {
 
       card.innerHTML = `
         <div class="slot-head">
-          <div class="slot-title" id="slot-title">${weekdayLabel(weekday)} · ${d}.${m}. · ${fmt(block.startMin)}–${fmt(block.endMin)}</div>
+          <div class="slot-title" id="slot-title">${weekdayLabel(weekday)} · ${fmt(block.startMin)}–${fmt(block.endMin)}</div>
           <span class="slot-pool">${state.pool}</span>
         </div>
         <div class="slot-lanes lane-${level}">
