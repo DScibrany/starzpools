@@ -17,6 +17,14 @@ Zdroje:
 
 ## Ukážka
 
+> **Poznámka k snímkam:** hlavné dashboard screenshoty
+> (`screenshot-50m.png`, `screenshot-25m.png`) pochádzajú z čias pred
+> niektorými nedávnymi UI úpravami — nezachytávajú napríklad farebný
+> lane-dots indikátor v karte „Práve teraz", chipy
+> „nezvyčajne voľno / obsadené" a „sviatok", sparkline v karte „Dnes"
+> alebo popup nad bunkami heatmapy. Funkcionalita je však popísaná
+> v sekcii [Funkcie](#funkcie).
+
 <details open>
 <summary>50 m bazén (predvolený)</summary>
 
@@ -50,6 +58,44 @@ Téma sa prepína vpravo nad heatmapou a ukladá sa do `localStorage`.
 <summary>Vyhľadávač („Nájdite si čas“)</summary>
 
 ![Vyhľadávač voľných blokov](docs/screenshot-finder.png)
+
+</details>
+
+<details>
+<summary>Trend tab</summary>
+
+Záložka **Trend** ukazuje 7 × 76 heatmapu priemernej voľnosti dráh za
+posledných 8 týždňov, jeden riadok per deň v týždni. Dátumy uvedené
+v `pricing.json.holidays` sa pri priemerovaní vyfiltrujú. Každá bunka
+je klikateľná (klik aj Enter cez klávesovú navigáciu) a otvorí popup
+s priemerom + 🔗 tlačidlom na plný detail modal.
+
+_Snímka sa doplní — cieľové umiestnenie: [`docs/screenshot-trend.png`](docs/)._
+
+</details>
+
+<details>
+<summary>Popup nad bunkou heatmapy + detail modal</summary>
+
+Klik (alebo Enter) na bunku dashboard alebo trend heatmapy ukáže
+kompaktný popup so základnými údajmi — deň, čas, počet voľných dráh —
+a 🔗 tlačidlom, ktoré otvorí plný slot detail modal: priemer z trendu
+(zafarbený pri odchýlke ≥ 1,5 dráhy), chip „sviatok" ak je, akcie
+**Pridať do kalendára** (`.ics`), **Pridať do obľúbených**
+a **Skopírovať odkaz** (`?slot=YYYY-MM-DDTHH:MM`).
+
+_Snímky sa doplnia — cieľové umiestnenia: [`docs/screenshot-heatmap-popup.png`](docs/) a [`docs/screenshot-slot-modal.png`](docs/)._
+
+</details>
+
+<details>
+<summary>Sparkline v karte „Dnes“</summary>
+
+Inline mini-graf SVG zo 76 hodnôt `day.free` tesne pod nadpisom karty
+„Dnes" so zvislou žltou značkou v aktuálnom 15-min slote — prehľad
+celého dňa bez skoku do heatmapy.
+
+_Snímka sa doplní — cieľové umiestnenie: [`docs/screenshot-sparkline.png`](docs/)._
 
 </details>
 
@@ -164,11 +210,10 @@ v [`TODO.md`](TODO.md).
       formát `schedule*.json`, len s iným pool-tabom.
 - [ ] **Odporúčač najlepšieho času** — využiť `trend.json` a ponúknuť
       „najtichšie okno tento týždeň" pre zadanú dĺžku + min. dráhy.
-- [ ] **Neistota v trende** — priemer v trende skrýva rozptyl. Zobraziť
-      min/max whiskers alebo druhú farebnú dimenziu.
-- [ ] **Trend citlivý na sviatky** — sviatky momentálne ťahajú dole
-      priemer daného dňa týždňa; stačí ich odfiltrovať v
-      `scripts/compute_trend.py`.
+- [ ] **Kalkulačka ceny** — typ vstupu × dĺžka × všedný deň/sviatok →
+      EUR, z `pricing.json`.
+- [ ] **Mesačný prehľad (1 bunka / deň)** — dlhšia farebná mriežka nad
+      rámec 14 dní, s priemerom z `trend.json`.
 - [ ] **Odber kalendára (`subscribe.ics`)** — denne generovaný ICS feed
       so všetkými verejnými blokmi na 14 dní.
 
@@ -199,10 +244,17 @@ workflow `update-data.yml` commituje čerstvé JSON-y do `main`,
 |---|---|
 | `index.html` | rozloženie stránky |
 | `styles.css` | štýly (tmavá téma) |
-| `app.js` | načítanie dát, render, vyhľadávač |
+| `app.js` | načítanie dát, render, vyhľadávač, modal |
+| `lib/helpers.js` | čisté helpery (pokryté `tests/helpers.test.mjs`) |
+| `i18n.json` | preklady (sk + en) |
 | `schedule.json` | údaje 25 m bazéna |
 | `schedule-50m.json` | údaje 50 m bazéna |
-| `pricing.json` | cenník |
+| `pricing.json` | cenník + `bands`, `holidays` |
+| `trend.json` | agregovaný trend obsadenosti (per pool × weekday × slot) |
+| `manifest.json`, `sw.js`, `icons/` | PWA (pridanie na plochu, offline cache) |
+| `og.png` | pred-renderovaný share obrázok (denný) |
+| `scripts/` | scraper (`update_data.py`), trend (`compute_trend.py`), OG (`generate_og.py`) |
+| `tests/` | pytest (scraper golden + trend holiday filter) a node `--test` (JS helpery) |
 | `docs/` | snímky pre README |
 
 ## Dátový formát rozvrhu
@@ -213,7 +265,7 @@ Každý súbor `schedule*.json` má rovnakú štruktúru:
 {
   "pool": "…",
   "source": "https://…",
-  "updated": "YYYY-MM-DD HH:MM",
+  "updated": "YYYY-MM-DD",
   "slotMinutes": 15,
   "dayStart": "05:00",
   "dayEnd": "24:00",
