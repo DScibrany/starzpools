@@ -16,9 +16,6 @@ projekt bude rozvíjať.
       `pricing.json.holidays`, označiť deň v heatmape / karte „Dnes"
       odznakom „sviatok" a pripojiť sviatočné hodiny/ceny. Komplementárne
       k „Trend citlivý na sviatky" (to rieši dátovú stranu).
-- [ ] **Deep-link na konkrétny slot** — `?slot=YYYY-MM-DDTHH:MM` otvorí
-      modal s detailom bloku (čas, dráhy, priemer z trendu, ICS, favorit).
-      Prirodzené rozšírenie existujúceho share-link pattern-u.
 - [ ] **Kliknutie na bunku heatmapy → detail modal** — priemer z trendu,
       dnešná hodnota, favorit, ICS, deep-link. Odomkne trend dáta bez
       tab-switchu. Treba skĺbiť s existujúcou klávesovou navigáciou gridu
@@ -90,6 +87,19 @@ projekt bude rozvíjať.
 
 Tieto položky sú pokryté aj v sekcii **Funkcie** hlavného README.
 
+- [x] **Deep-link na konkrétny slot** — `?slot=YYYY-MM-DDTHH:MM` otvorí
+      modal s detailom bloku: dátum + deň + časový rozsah, aktuálny počet
+      voľných dráh (plus farebná úroveň + bodky), priemer z `trend.json`
+      pre daný (pool, weekday, slot) a delta vs dnes (zelený / červený
+      chip pri |delta| ≥ 1.5). Modal má akcie „Pridať do kalendára"
+      (volá existujúci `downloadICS`), „Pridať do obľúbených" (toggle cez
+      `toggleFavoriteBlock`), „Skopírovať odkaz" (copy-to-clipboard
+      s fallbackom na `window.prompt`) a „Zavrieť". V karte „Dnes" má
+      každý nezmeškaný blok nové 🔗 tlačidlo, ktoré modal otvorí.
+      Zatvorenie modalu vyčistí `?slot` z URL. Helpery `parseSlotParam`,
+      `buildSlotURL`, `findBlockContaining`, `openSlotModal`,
+      `closeSlotModal`, `setupSlotModal` v `app.js`; `.slot-card` štýly
+      v `styles.css`; i18n kľúče `slot.*` + `today.slot_link_tip`.
 - [x] **„Neobvykle ticho / obsadené" odznak** — v karte „Práve teraz" sa
       popri band-chip zobrazí `unusual-chip`, keď sa aktuálny počet voľných
       dráh líši od priemeru z `trend.json` pre daný (pool, weekday, slot)

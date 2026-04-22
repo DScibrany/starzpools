@@ -118,6 +118,9 @@ Cenník — každá bunka má ⚠:
 - **Zdieľanie odkazu** — URL sa synchronizuje s vyhľadávačom
   (`?pool=…&date=…&from=…&lanes=…&len=…`); tlačidlo „Skopírovať odkaz"
   vloží aktuálny stav do schránky.
+- **Deep-link na slot** — 🔗 pri každom dnešnom bloku otvorí detail modal
+  (dráhy, priemer z trendu, ICS, favorit, „Skopírovať odkaz"). URL tvaru
+  `?slot=YYYY-MM-DDTHH:MM` otvorí ten istý modal rovno po načítaní.
 - **Print / share karta** — 📸 Zdieľať v karte „Dnes" otvorí kompaktný
   screenshot-friendly prehľad dňa s „Tlačiť / Uložiť PDF" cez `@media print`.
 - **OG image** — denne pred-renderovaný `og.png` (1200×630) pre náhľad

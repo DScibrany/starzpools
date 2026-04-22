@@ -184,10 +184,12 @@ async function load() {
   setupGridTooltip();
   setupGridKeyboard();
   setupShareModal();
+  setupSlotModal();
   renderPricingStaleBanner();
   renderPricing();
   render();
   applyFinderFromURL();
+  applySlotFromURL();
   setInterval(render, 30_000);
   setInterval(refreshSchedule, SCHEDULE_REFRESH_MS);
 }
@@ -1009,6 +1011,9 @@ function renderTodayBlocks(now, data) {
     const icsBtn = it.past ? "" :
       `<button type="button" class="ics-btn" title="${t("today.ics_tip")}"
         data-iso="${day.date}" data-start="${b.startMin}" data-end="${b.endMin}" data-lanes="${b.lanes}">📅</button>`;
+    const linkBtn = it.past ? "" :
+      `<button type="button" class="slot-link-btn" title="${t("today.slot_link_tip")}"
+        data-iso="${day.date}" data-start="${b.startMin}">🔗</button>`;
     const dotsOn = "●".repeat(b.lanes);
     const dotsOff = "○".repeat(Math.max(0, data.maxLanes - b.lanes));
     const isFav = !!findFavoriteForBlock(state.pool, day.weekday, b.startMin, b.endMin);
@@ -1023,6 +1028,7 @@ function renderTodayBlocks(now, data) {
       <span class="dots lane-${level}" aria-hidden="true"><span class="on">${dotsOn}</span><span class="off">${dotsOff}</span></span>
       ${it.live ? `<span class="tag">${t("today.tag.live")}</span>` : it.past ? `<span class="tag past">${t("today.tag.past")}</span>` : ''}
       ${icsBtn}
+      ${linkBtn}
     </li>`;
   }).join("");
 
@@ -1063,6 +1069,12 @@ function renderTodayBlocks(now, data) {
         lanes: Number(btn.dataset.lanes),
         pool: state.pool,
       });
+    });
+  });
+
+  box.querySelectorAll(".slot-link-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      openSlotModal(btn.dataset.iso, Number(btn.dataset.start));
     });
   });
 
@@ -1539,6 +1551,175 @@ function setupShareModal() {
   document.getElementById("share-print")?.addEventListener("click", () => window.print());
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !modal.hidden) closeShareCard();
+  });
+}
+
+function parseSlotParam(raw) {
+  if (!raw) return null;
+  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})$/.exec(raw);
+  if (!m) return null;
+  return { iso: m[1], startMin: Number(m[2]) * 60 + Number(m[3]) };
+}
+
+function buildSlotURL(iso, startMin) {
+  const params = new URLSearchParams();
+  if (state.pool !== "50m") params.set("pool", state.pool);
+  params.set("slot", `${iso}T${fmt(startMin)}`);
+  const qs = params.toString();
+  return location.origin + location.pathname + (qs ? "?" + qs : "");
+}
+
+function applySlotFromURL() {
+  const raw = new URLSearchParams(location.search).get("slot");
+  const parsed = parseSlotParam(raw);
+  if (!parsed) return;
+  openSlotModal(parsed.iso, parsed.startMin);
+}
+
+function findBlockContaining(day, data, startMin) {
+  const blocks = collapseBlocks(day.free, data.slotMinutes, toMin(data.dayStart));
+  return blocks.find(b => startMin >= b.startMin && startMin < b.endMin) || null;
+}
+
+function openSlotModal(iso, startMin) {
+  const modal = document.getElementById("slot-modal");
+  const card = document.getElementById("slot-card");
+  const icsBtn = document.getElementById("slot-ics");
+  const favBtn = document.getElementById("slot-fav");
+  const copyBtn = document.getElementById("slot-copy");
+  if (!modal || !card) return;
+
+  const data = activeData();
+  const day = data ? findDay(data, iso) : null;
+  const [, m, d] = iso.split("-");
+  const maxLanes = data?.maxLanes || 4;
+
+  if (!day) {
+    card.innerHTML = `
+      <div class="slot-head">
+        <div class="slot-title" id="slot-title">${d}.${m}. · ${fmt(startMin)}</div>
+      </div>
+      <div class="slot-body muted">${t("slot.no_data")}</div>
+    `;
+    if (icsBtn) icsBtn.hidden = true;
+    if (favBtn) favBtn.hidden = true;
+  } else {
+    const block = findBlockContaining(day, data, startMin);
+    const weekday = day.weekday;
+    const slotIdx = Math.floor((startMin - toMin(data.dayStart)) / data.slotMinutes);
+    const avg = trendAvgFor(state.pool, weekday, slotIdx);
+
+    if (!block) {
+      card.innerHTML = `
+        <div class="slot-head">
+          <div class="slot-title" id="slot-title">${weekdayLabel(weekday)} · ${d}.${m}. · ${fmt(startMin)}</div>
+          <span class="slot-pool">${state.pool}</span>
+        </div>
+        <div class="slot-body muted">${t("slot.closed")}</div>
+      `;
+      if (icsBtn) icsBtn.hidden = true;
+      if (favBtn) favBtn.hidden = true;
+    } else {
+      const level = levelFor(block.lanes, maxLanes);
+      const dotsOn = "●".repeat(block.lanes);
+      const dotsOff = "○".repeat(Math.max(0, maxLanes - block.lanes));
+      const trendHTML = (avg != null)
+        ? (() => {
+            const delta = block.lanes - avg;
+            const sign = delta > 0 ? "+" : delta < 0 ? "−" : "±";
+            const abs = (Math.round(Math.abs(delta) * 10) / 10).toFixed(1);
+            const cls = Math.abs(delta) >= 1.5 ? (delta > 0 ? "quiet" : "busy") : "";
+            return `<div class="slot-trend ${cls}">${t("slot.trend_avg", {
+              weekday: weekdayLabel(weekday),
+              time: fmt(block.startMin),
+              avg: (Math.round(avg * 10) / 10).toFixed(1),
+              max: maxLanes,
+              delta: `${sign}${abs}`,
+            })}</div>`;
+          })()
+        : `<div class="slot-trend muted">${t("slot.trend_none")}</div>`;
+
+      card.innerHTML = `
+        <div class="slot-head">
+          <div class="slot-title" id="slot-title">${weekdayLabel(weekday)} · ${d}.${m}. · ${fmt(block.startMin)}–${fmt(block.endMin)}</div>
+          <span class="slot-pool">${state.pool}</span>
+        </div>
+        <div class="slot-lanes lane-${level}">
+          <span class="slot-lanes-big">${block.lanes} / ${maxLanes}</span>
+          <span class="slot-dots lane-${level}" aria-hidden="true"><span class="on">${dotsOn}</span><span class="off">${dotsOff}</span></span>
+          <span class="slot-lanes-word">${lanesWord(block.lanes)}</span>
+        </div>
+        ${trendHTML}
+      `;
+
+      if (icsBtn) {
+        icsBtn.hidden = false;
+        icsBtn.onclick = () => downloadICS({
+          iso, startMin: block.startMin, endMin: block.endMin,
+          lanes: block.lanes, pool: state.pool,
+        });
+      }
+      if (favBtn) {
+        const isFav = !!findFavoriteForBlock(state.pool, weekday, block.startMin, block.endMin);
+        favBtn.hidden = false;
+        favBtn.textContent = t(isFav ? "today.fav.remove" : "slot.favorite");
+        favBtn.onclick = () => {
+          toggleFavoriteBlock(state.pool, weekday, block.startMin, block.endMin);
+          const nowFav = !!findFavoriteForBlock(state.pool, weekday, block.startMin, block.endMin);
+          favBtn.textContent = t(nowFav ? "today.fav.remove" : "slot.favorite");
+        };
+      }
+    }
+  }
+
+  if (copyBtn) {
+    copyBtn.textContent = t("slot.copy");
+    copyBtn.classList.remove("copied");
+    copyBtn.onclick = async () => {
+      const url = buildSlotURL(iso, startMin);
+      try {
+        await navigator.clipboard.writeText(url);
+        copyBtn.textContent = t("finder.copied");
+        copyBtn.classList.add("copied");
+        setTimeout(() => {
+          copyBtn.textContent = t("slot.copy");
+          copyBtn.classList.remove("copied");
+        }, 1800);
+      } catch {
+        window.prompt(t("finder.copy_prompt"), url);
+      }
+    };
+  }
+
+  modal.hidden = false;
+  document.body.classList.add("share-open");
+  document.getElementById("slot-close")?.focus();
+}
+
+function closeSlotModal() {
+  const modal = document.getElementById("slot-modal");
+  if (!modal) return;
+  modal.hidden = true;
+  if (document.getElementById("share-modal")?.hidden !== false) {
+    document.body.classList.remove("share-open");
+  }
+  const params = new URLSearchParams(location.search);
+  if (params.has("slot")) {
+    params.delete("slot");
+    const qs = params.toString();
+    history.replaceState(null, "", location.pathname + (qs ? "?" + qs : "") + location.hash);
+  }
+}
+
+function setupSlotModal() {
+  const modal = document.getElementById("slot-modal");
+  if (!modal) return;
+  modal.addEventListener("click", (e) => {
+    const el = e.target;
+    if (el && el instanceof Element && el.getAttribute("data-close") === "1") closeSlotModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !modal.hidden) closeSlotModal();
   });
 }
 
