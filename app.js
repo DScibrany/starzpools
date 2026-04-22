@@ -861,9 +861,10 @@ function renderHeatmap(now, data) {
       const s = startMin + c * slot;
       const lanesText = raw === 0 ? t("grid.no_free_lanes") : t("grid.lanes_ratio", { free: raw, max: data.maxLanes });
       const lanesShort = raw === 0 ? t("grid.no_free_lanes") : t("grid.lanes_short", { free: raw, max: data.maxLanes });
+      const dotsViz = " · " + "●".repeat(raw) + "○".repeat(Math.max(0, data.maxLanes - raw));
       const isFavCell = cellFavoritedFor(state.pool, day.weekday, s);
       if (isFavCell) el.classList.add("fav");
-      el.title = t("grid.tooltip", { weekday: weekdayLabel(day.weekday), date: `${d}.${m}.`, from: fmt(s), to: fmt(s + slot), lanes: lanesShort }) + (isFavCell ? " · ★" : "");
+      el.title = t("grid.tooltip", { weekday: weekdayLabel(day.weekday), date: `${d}.${m}.`, from: fmt(s), to: fmt(s + slot), lanes: lanesShort }) + dotsViz + (isFavCell ? " · ★" : "");
       el.setAttribute("aria-label", t("grid.aria_cell", { weekday: weekdayLabel(day.weekday), date: `${d}.${m}.`, time: fmt(s), lanes: lanesText }) + (isFavCell ? " " + t("grid.aria_fav") : ""));
       el.dataset.date = day.date;
       el.dataset.row = String(r);
@@ -1765,13 +1766,15 @@ function renderTrend() {
         const rounded = Math.round(v * 10) / 10;
         const level = v <= 0 ? 0 : levelFor(Math.max(1, Math.round(v)), maxLanes);
         el.className = `cell lane-${level}`;
+        const avgWhole = Math.max(0, Math.min(maxLanes, Math.round(v)));
+        const dotsViz = " · " + "●".repeat(avgWhole) + "○".repeat(maxLanes - avgWhole);
         el.title = t("trend.tooltip", {
           weekday: weekdayLabel(wd),
           time: fmt(startMin + c * slotMin),
           avg: rounded,
           max: maxLanes,
           samples: bucket.samples,
-        });
+        }) + dotsViz;
       }
       grid.appendChild(el);
     }
