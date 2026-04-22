@@ -952,7 +952,6 @@ function showGridTip(cell) {
   const startMin = toMin(data.dayStart);
   const slot = data.slotMinutes;
   const s = startMin + col * slot;
-  const [, m, d] = iso.split("-");
   const lanesShort = raw === 0
     ? t("grid.no_free_lanes")
     : t("grid.lanes_short", { free: raw, max: maxLanes });
@@ -962,7 +961,6 @@ function showGridTip(cell) {
   const isFavCell = cellFavoritedFor(state.pool, day.weekday, s);
   const headText = t("grid.tooltip", {
     weekday: weekdayLabel(day.weekday),
-    date: `${d}.${m}.`,
     from: fmt(s),
     to: fmt(s + slot),
     lanes: lanesShort,
