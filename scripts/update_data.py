@@ -32,6 +32,7 @@ import time
 import urllib.parse
 from pathlib import Path
 from typing import Iterable
+from zoneinfo import ZoneInfo
 
 try:
     import requests
@@ -90,6 +91,7 @@ SK_WEEKDAYS = {
     0: "pondelok", 1: "utorok", 2: "streda", 3: "štvrtok",
     4: "piatok", 5: "sobota", 6: "nedeľa",
 }
+LOCAL_TZ = ZoneInfo("Europe/Bratislava")
 
 
 # ---------------------------------------------------------------- scraping --
@@ -508,7 +510,7 @@ def transform_xlsx(xlsx_path: Path, meta: dict, source_page: str) -> dict:
     return {
         "pool": meta["name"],
         "source": source_page,
-        "updated": dt.date.today().strftime("%Y-%m-%d"),
+        "updated": dt.datetime.now(LOCAL_TZ).strftime("%Y-%m-%d %H:%M"),
         "note": (
             f"Hodnoty = počet voľných dráh pre verejnosť v danom 15-min bloku "
             f"(max {meta['max_lanes']}). Zdroj: STARZ tabuľka."
