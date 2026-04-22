@@ -293,12 +293,19 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
 .now-prices .np.stale { border-color: rgba(245, 158, 11, 0.55); background: rgba(245, 158, 11, 0.08); }
 .now-prices .np.stale .np-val { color: #fcd34d; }
 .now-prices .np-stale { color: #fbbf24; margin-left: 4px; cursor: help; }
+.now-card .now-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 4px 0 6px;
+}
 .now-card .big {
   font-size: 64px;
   font-weight: 800;
   color: var(--text);
   line-height: 1;
-  margin: 4px 0 6px;
+  margin: 0;
   font-variant-numeric: tabular-nums;
   transition: color 0.2s ease;
 }
@@ -308,14 +315,11 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
 .now-card .big.lane-4 { color: var(--lane-4); }
 .now-card .big .of { color: var(--muted); font-weight: 500; font-size: 32px; }
 .now-card .now-dots {
-  font-size: 22px;
+  font-size: 26px;
   letter-spacing: 4px;
   line-height: 1;
-  margin: 2px 0 8px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: clip;
 }
 .now-card .now-dots:empty { display: none; }
 .now-card .now-dots .on { color: var(--lane-4); }
@@ -325,7 +329,8 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
 .now-card .now-dots.lane-4 .on { color: var(--lane-4); }
 .now-card .now-dots .off { color: var(--line); }
 @media (max-width: 560px) {
-  .now-card .now-dots { font-size: 16px; letter-spacing: 2px; }
+  .now-card .now-row { gap: 4px 10px; }
+  .now-card .now-dots { font-size: 18px; letter-spacing: 2px; }
 }
 .now-card .sub { color: var(--muted); font-size: 14px; }
 .now-card .next {
