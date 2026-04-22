@@ -182,7 +182,9 @@ async function load() {
   refreshLaneOptions();
   setupLinks();
   setupGridCellClick();
-  setupGridKeyboard();
+  setupGridKeyboard("grid");
+  setupTrendCellClick();
+  setupGridKeyboard("trend-grid");
   setupShareModal();
   setupSlotModal();
   renderPricingStaleBanner();
@@ -871,8 +873,8 @@ function renderHeatmap(now, data) {
   renderLegend(data.maxLanes);
 }
 
-function setupGridKeyboard() {
-  const grid = document.getElementById("grid");
+function setupGridKeyboard(gridId) {
+  const grid = document.getElementById(gridId);
   if (!grid) return;
   grid.addEventListener("keydown", (e) => {
     const cell = e.target.closest?.(".cell[role='gridcell']");
@@ -914,6 +916,27 @@ function setupGridCellClick() {
     const col = Number(cell.dataset.col);
     const startMin = toMin(data.dayStart) + col * data.slotMinutes;
     openSlotModal(cell.dataset.date, startMin);
+  });
+}
+
+function nextDateForWeekday(data, weekday) {
+  if (!data?.days) return null;
+  return data.days.find(d => d.weekday === weekday)?.date || null;
+}
+
+function setupTrendCellClick() {
+  const grid = document.getElementById("trend-grid");
+  if (!grid) return;
+  grid.addEventListener("click", (e) => {
+    const cell = e.target.closest(".cell[role='gridcell'][data-wd][data-col]");
+    if (!cell) return;
+    const data = activeData();
+    if (!data) return;
+    const iso = nextDateForWeekday(data, cell.dataset.wd);
+    if (!iso) return;
+    const col = Number(cell.dataset.col);
+    const startMin = toMin(data.dayStart) + col * data.slotMinutes;
+    openSlotModal(iso, startMin);
   });
 }
 
@@ -1722,6 +1745,8 @@ function renderTrend() {
   grid.innerHTML = "";
   grid.setAttribute("role", "grid");
   grid.setAttribute("aria-label", t("trend.title"));
+  grid.setAttribute("aria-rowcount", String(WEEKDAYS.length + 1));
+  grid.setAttribute("aria-colcount", String(cols + 1));
 
   const corner = document.createElement("div");
   corner.className = "cell header rowhead";
@@ -1738,7 +1763,9 @@ function renderTrend() {
     grid.appendChild(el);
   }
 
-  for (const wd of WEEKDAYS) {
+  let initialFocusCell = null;
+  for (let r = 0; r < WEEKDAYS.length; r++) {
+    const wd = WEEKDAYS[r];
     const bucket = byWd[wd];
     const head = document.createElement("div");
     head.className = "cell rowhead";
@@ -1748,6 +1775,11 @@ function renderTrend() {
     for (let c = 0; c < cols; c++) {
       const v = avg[c];
       const el = document.createElement("div");
+      el.setAttribute("role", "gridcell");
+      el.setAttribute("tabindex", "-1");
+      el.dataset.wd = wd;
+      el.dataset.row = String(r);
+      el.dataset.col = String(c);
       if (!bucket || v == null) {
         el.className = "cell lane-0";
         el.title = t("trend.tooltip_nodata", { weekday: weekdayLabel(wd), time: fmt(startMin + c * slotMin) });
@@ -1763,9 +1795,13 @@ function renderTrend() {
           samples: bucket.samples,
         });
       }
+      el.setAttribute("aria-label", el.title);
+      if (!initialFocusCell) initialFocusCell = el;
       grid.appendChild(el);
     }
   }
+
+  if (initialFocusCell) initialFocusCell.setAttribute("tabindex", "0");
 
   renderTrendLegend(legend, maxLanes);
 }
