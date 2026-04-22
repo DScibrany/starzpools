@@ -181,8 +181,6 @@ async function load() {
   populateWeekdayOptions();
   refreshLaneOptions();
   setupLinks();
-  setupGridCellClick();
-  setupGridKeyboard();
   setupGridTooltip();
   setupGridPopup(".grid-wrap", "grid", resolveMainCellSlot);
   setupGridKeyboard("grid");
