@@ -300,7 +300,12 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
   line-height: 1;
   margin: 4px 0 6px;
   font-variant-numeric: tabular-nums;
+  transition: color 0.2s ease;
 }
+.now-card .big.lane-1 { color: var(--lane-1); }
+.now-card .big.lane-2 { color: var(--lane-2); }
+.now-card .big.lane-3 { color: var(--lane-3); }
+.now-card .big.lane-4 { color: var(--lane-4); }
 .now-card .big .of { color: var(--muted); font-weight: 500; font-size: 32px; }
 .now-card .sub { color: var(--muted); font-size: 14px; }
 .now-card .next {
