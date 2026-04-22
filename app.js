@@ -684,6 +684,7 @@ function renderEmpty() {
   card.classList.remove("live");
   pill.textContent = t("now.nodata");
   pill.className = "pill";
+  big.className = "big";
   big.textContent = "—";
   sub.textContent = t("empty.no_pool_data");
   next.textContent = t("empty.fill_schedule");
@@ -710,6 +711,7 @@ function renderNow(now, data) {
     card.classList.remove("live");
     pill.textContent = t("now.outofschedule");
     pill.className = "pill";
+    big.className = "big";
     big.textContent = "—";
     sub.textContent = t("now.noscheduletoday");
     next.textContent = "";
@@ -726,6 +728,8 @@ function renderNow(now, data) {
   const avg = (currentFree > 0) ? trendAvgFor(state.pool, day.weekday, idx) : null;
   renderUnusualChip(unusualChip, avg != null ? currentFree - avg : null);
 
+  const level = currentFree > 0 ? levelFor(currentFree, data.maxLanes) : 0;
+  big.className = `big lane-${level}`;
   big.innerHTML = `${currentFree}<span class="of"> / ${data.maxLanes}</span>`;
   if (currentFree > 0) {
     pill.textContent = t("now.open");
