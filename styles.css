@@ -307,6 +307,26 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
 .now-card .big.lane-3 { color: var(--lane-3); }
 .now-card .big.lane-4 { color: var(--lane-4); }
 .now-card .big .of { color: var(--muted); font-weight: 500; font-size: 32px; }
+.now-card .now-dots {
+  font-size: 22px;
+  letter-spacing: 4px;
+  line-height: 1;
+  margin: 2px 0 8px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+}
+.now-card .now-dots:empty { display: none; }
+.now-card .now-dots .on { color: var(--lane-4); }
+.now-card .now-dots.lane-1 .on { color: var(--lane-1); }
+.now-card .now-dots.lane-2 .on { color: var(--lane-2); }
+.now-card .now-dots.lane-3 .on { color: var(--lane-3); }
+.now-card .now-dots.lane-4 .on { color: var(--lane-4); }
+.now-card .now-dots .off { color: var(--line); }
+@media (max-width: 560px) {
+  .now-card .now-dots { font-size: 16px; letter-spacing: 2px; }
+}
 .now-card .sub { color: var(--muted); font-size: 14px; }
 .now-card .next {
   margin-top: 12px;
