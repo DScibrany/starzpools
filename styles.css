@@ -230,6 +230,42 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
 .band-chip.offpeak { background: rgba(34, 197, 94, 0.12); color: #86efac; border-color: rgba(34, 197, 94, 0.4); }
 .band-chip.outside { background: #1a2336; color: var(--muted); }
 
+.unusual-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  letter-spacing: .04em;
+  text-transform: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.unusual-chip[hidden] { display: none; }
+.unusual-chip.quiet { background: rgba(34, 197, 94, 0.12); color: #86efac; border-color: rgba(34, 197, 94, 0.4); }
+.unusual-chip.busy { background: rgba(244, 63, 94, 0.15); color: #fda4af; border-color: rgba(244, 63, 94, 0.45); }
+
+.today-spark {
+  display: block;
+  width: 100%;
+  height: 34px;
+  margin: 6px 0 10px;
+  color: var(--accent);
+}
+.today-spark .spark-line {
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.today-spark .spark-now {
+  stroke: #fbbf24;
+  stroke-width: 2;
+  opacity: 0.8;
+}
+
 .now-prices {
   margin-top: 12px;
   padding-top: 12px;

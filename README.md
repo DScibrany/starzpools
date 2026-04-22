@@ -94,7 +94,9 @@ Cenník — každá bunka má ⚠:
 - **Prepínač bazénov** 25 m / 50 m.
 - **Karta „Práve teraz“** — výrazne zvýraznená, pulzujúce orámovanie počas
   prebiehajúceho verejného bloku, počet voľných dráh, kedy blok končí alebo
-  kedy začne najbližší verejný blok.
+  kedy začne najbližší verejný blok. Chip **„nezvyčajne voľno / obsadené"**
+  sa objaví, keď sa aktuálny stav líši od priemeru v `trend.json` pre daný
+  deň a čas aspoň o 1,5 dráhy.
 - **Vyhľadávač voľných blokov** — nastavte najskorší čas, minimálny počet
   dráh a minimálnu dĺžku, dashboard vyhľadá všetky vyhovujúce okná a zvýrazní
   ich v heatmape.
@@ -103,6 +105,9 @@ Cenník — každá bunka má ⚠:
   Prepínateľné farebné témy (Semafor / Viridis / Modrá / Rozhranie 50 %).
 - **Trend obsadenosti** — záložka **Trend** s 7×76 heatmapou priemernej
   voľnosti za posledných 8 týždňov, per deň-v-týždni a 15-min slot.
+- **Sparkline dňa** — inline mini-graf krivky voľných dráh v karte „Dnes"
+  so zvislou značkou aktuálneho slotu; prehľad celého dňa bez skoku
+  do heatmapy.
 - **Obľúbené sloty** — ★ pri bloku v karte „Dnes" uloží (pool + deň + čas)
   favoritu do `localStorage`; heatmapa zvýrazní favoritné riadky a bunky.
 - **Upozornenia na voľný slot** — sekcia „Sledovať voľný slot" (deň / čas /
