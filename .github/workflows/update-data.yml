@@ -2,10 +2,9 @@ name: Update schedule & pricing
 
 on:
   schedule:
-    # Daily at 04:37 UTC (06:37 Europe/Bratislava in summer, 05:37 in winter).
-    # An off-the-hour minute reduces the chance GitHub silently skips the run
-    # during the top-of-hour scheduling congestion window.
-    - cron: "37 4 * * *"
+    # Hourly at :17. An off-the-hour minute reduces the chance GitHub silently
+    # skips the run during the top-of-hour scheduling congestion window.
+    - cron: "17 * * * *"
   workflow_dispatch: {}
 
 permissions:
@@ -47,7 +46,7 @@ jobs:
             exit 0
           fi
           git add schedule.json schedule-50m.json pricing.json data/starz/
-          DATE=$(date -u +'%Y-%m-%d')
+          DATE=$(date -u +'%Y-%m-%d %H:%M')
           git commit -m "Data refresh ${DATE} [skip ci]"
           echo "committed=true" >> "$GITHUB_OUTPUT"
 
@@ -63,7 +62,7 @@ jobs:
             echo "No trend changes to commit."
           else
             git add trend.json
-            DATE=$(date -u +'%Y-%m-%d')
+            DATE=$(date -u +'%Y-%m-%d %H:%M')
             git commit -m "Trend refresh ${DATE} [skip ci]"
           fi
 
@@ -77,7 +76,7 @@ jobs:
             echo "No OG image changes to commit."
           else
             git add og.png
-            DATE=$(date -u +'%Y-%m-%d')
+            DATE=$(date -u +'%Y-%m-%d %H:%M')
             git commit -m "OG preview refresh ${DATE} [skip ci]"
           fi
 

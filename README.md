@@ -174,7 +174,7 @@ Repozitár má pripravený workflow
 obsah repozitára na GitHub Pages. Stačí v repo **Settings → Pages**
 zvoliť **Source: GitHub Actions** — ďalšie nastavenia netreba.
 
-Výsledná URL má tvar `https://<user>.github.io/starzpools/`. Denný
+Výsledná URL má tvar `https://<user>.github.io/starzpools/`. Hodinový
 workflow `update-data.yml` commituje čerstvé JSON-y do `main`,
 čo automaticky spustí redeployment.
 
@@ -198,7 +198,7 @@ Každý súbor `schedule*.json` má rovnakú štruktúru:
 {
   "pool": "…",
   "source": "https://…",
-  "updated": "YYYY-MM-DD",
+  "updated": "YYYY-MM-DD HH:MM",
   "slotMinutes": 15,
   "dayStart": "05:00",
   "dayEnd": "24:00",

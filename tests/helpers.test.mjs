@@ -103,6 +103,14 @@ test("scheduleAgeDays: ignores wall-clock time of day", () => {
   assert.equal(scheduleAgeDays("2026-04-21", evening), 0);
 });
 
+test("scheduleAgeDays: accepts date+time (space or T separator)", () => {
+  const now = new Date(2026, 3, 21);
+  assert.equal(scheduleAgeDays("2026-04-21 06:37", now), 0);
+  assert.equal(scheduleAgeDays("2026-04-20 23:59", now), 1);
+  assert.equal(scheduleAgeDays("2026-04-18T04:17Z", now), 3);
+  assert.equal(scheduleAgeDays("2026-04-21T06:37:00+02:00", now), 0);
+});
+
 test("icsEscape", () => {
   assert.equal(icsEscape("a;b,c\nd\\e"), "a\\;b\\,c\\nd\\\\e");
   assert.equal(icsEscape("plain"), "plain");
