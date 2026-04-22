@@ -324,6 +324,7 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
   font-variant-numeric: tabular-nums;
   transition: color 0.2s ease;
 }
+.now-card .big.lane-0 { color: var(--muted); }
 .now-card .big.lane-1 { color: var(--lane-1); }
 .now-card .big.lane-2 { color: var(--lane-2); }
 .now-card .big.lane-3 { color: var(--lane-3); }
