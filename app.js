@@ -879,10 +879,11 @@ function renderHeatmap(now, data) {
       }
       const s = startMin + c * slot;
       const lanesText = raw === 0 ? t("grid.no_free_lanes") : t("grid.lanes_ratio", { free: raw, max: data.maxLanes });
+      const lanesShort = raw === 0 ? t("grid.no_free_lanes") : t("grid.lanes_short", { free: raw, max: data.maxLanes });
       const isFavCell = cellFavoritedFor(state.pool, day.weekday, s);
       if (isFavCell) el.classList.add("fav");
       const holSuffix = isHoliday(day.date) ? ` · ${t("holiday.chip")}` : "";
-      el.title = t("grid.tooltip", { weekday: weekdayLabel(day.weekday), date: `${d}.${m}.`, from: fmt(s), to: fmt(s + slot), lanes: lanesShort }) + holSuffix + (isFavCell ? " · ★" : "");
+      el.title = t("grid.tooltip", { weekday: weekdayLabel(day.weekday), from: fmt(s), to: fmt(s + slot), lanes: lanesShort }) + holSuffix + (isFavCell ? " · ★" : "");
       el.setAttribute("aria-label", t("grid.aria_cell", { weekday: weekdayLabel(day.weekday), date: `${d}.${m}.`, time: fmt(s), lanes: lanesText }) + (isFavCell ? " " + t("grid.aria_fav") : "") + (isHoliday(day.date) ? t("grid.aria_row_holiday") : ""));
       el.dataset.date = day.date;
       el.dataset.row = String(r);
