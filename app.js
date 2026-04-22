@@ -181,6 +181,9 @@ async function load() {
   populateWeekdayOptions();
   refreshLaneOptions();
   setupLinks();
+  setupGridCellClick();
+  setupGridKeyboard();
+  setupGridTooltip();
   setupGridPopup(".grid-wrap", "grid", resolveMainCellSlot);
   setupGridKeyboard("grid");
   setupGridPopup(".trend-wrap", "trend-grid", resolveTrendCellSlot);
@@ -878,7 +881,6 @@ function renderHeatmap(now, data) {
       }
       const s = startMin + c * slot;
       const lanesText = raw === 0 ? t("grid.no_free_lanes") : t("grid.lanes_ratio", { free: raw, max: data.maxLanes });
-      const lanesShort = raw === 0 ? t("grid.no_free_lanes") : t("grid.lanes_short", { free: raw, max: data.maxLanes });
       const isFavCell = cellFavoritedFor(state.pool, day.weekday, s);
       if (isFavCell) el.classList.add("fav");
       const holSuffix = isHoliday(day.date) ? ` · ${t("holiday.chip")}` : "";
@@ -1018,6 +1020,100 @@ function setupGridPopup(wrapSelector, gridId, resolver) {
   });
   wrap.addEventListener("scroll", hide, { passive: true });
   window.addEventListener("resize", hide);
+}
+
+function ensureGridTip() {
+  let tip = document.getElementById("grid-tip");
+  if (!tip) {
+    tip = document.createElement("div");
+    tip.id = "grid-tip";
+    tip.className = "grid-tip";
+    tip.setAttribute("role", "tooltip");
+    tip.hidden = true;
+    document.body.appendChild(tip);
+  }
+  return tip;
+}
+
+function showGridTip(cell) {
+  const data = activeData();
+  if (!data) return;
+  const iso = cell.dataset.date;
+  const col = Number(cell.dataset.col);
+  if (!iso || Number.isNaN(col)) return;
+  const day = findDay(data, iso);
+  if (!day) return;
+  const raw = day.free[col] ?? 0;
+  const maxLanes = data.maxLanes;
+  const startMin = toMin(data.dayStart);
+  const slot = data.slotMinutes;
+  const s = startMin + col * slot;
+  const lanesShort = raw === 0
+    ? t("grid.no_free_lanes")
+    : t("grid.lanes_short", { free: raw, max: maxLanes });
+  const level = levelFor(raw, maxLanes);
+  const dotsOn = "●".repeat(raw);
+  const dotsOff = "○".repeat(Math.max(0, maxLanes - raw));
+  const isFavCell = cellFavoritedFor(state.pool, day.weekday, s);
+  const headText = t("grid.tooltip", {
+    weekday: weekdayLabel(day.weekday),
+    from: fmt(s),
+    to: fmt(s + slot),
+    lanes: lanesShort,
+  }) + (isFavCell ? " · ★" : "");
+  const tip = ensureGridTip();
+  tip.innerHTML = `
+    <span class="grid-tip-text">${headText}</span>
+    <span class="grid-tip-dots lane-${level}" aria-hidden="true"><span class="on">${dotsOn}</span><span class="off">${dotsOff}</span></span>
+  `;
+  tip.hidden = false;
+  positionGridTip(tip, cell);
+}
+
+function positionGridTip(tip, cell) {
+  const r = cell.getBoundingClientRect();
+  const tr = tip.getBoundingClientRect();
+  const gap = 6;
+  const margin = 4;
+  let left = r.left + r.width / 2 - tr.width / 2;
+  let top = r.top - tr.height - gap;
+  if (top < margin) top = r.bottom + gap;
+  const maxLeft = window.innerWidth - tr.width - margin;
+  if (left < margin) left = margin;
+  if (left > maxLeft) left = Math.max(margin, maxLeft);
+  tip.style.left = `${left + window.scrollX}px`;
+  tip.style.top = `${top + window.scrollY}px`;
+}
+
+function hideGridTip() {
+  const tip = document.getElementById("grid-tip");
+  if (tip) tip.hidden = true;
+}
+
+function setupGridTooltip() {
+  const grid = document.getElementById("grid");
+  if (!grid) return;
+  const cellSelector = ".cell[role='gridcell'][data-date][data-col]";
+  grid.addEventListener("mouseover", (e) => {
+    const cell = e.target.closest?.(cellSelector);
+    if (!cell) return;
+    showGridTip(cell);
+  });
+  grid.addEventListener("mouseout", (e) => {
+    const cell = e.target.closest?.(cellSelector);
+    if (!cell) return;
+    const next = e.relatedTarget;
+    if (next && cell.contains(next)) return;
+    hideGridTip();
+  });
+  grid.addEventListener("focusin", (e) => {
+    const cell = e.target.closest?.(cellSelector);
+    if (!cell) return;
+    showGridTip(cell);
+  });
+  grid.addEventListener("focusout", hideGridTip);
+  grid.addEventListener("click", hideGridTip);
+  window.addEventListener("scroll", hideGridTip, { passive: true });
 }
 
 function renderLegend(max) {
@@ -1685,7 +1781,7 @@ function openSlotModal(iso, startMin) {
     if (!block) {
       card.innerHTML = `
         <div class="slot-head">
-          <div class="slot-title" id="slot-title">${weekdayLabel(weekday)} · ${d}.${m}. · ${fmt(startMin)}</div>
+          <div class="slot-title" id="slot-title">${weekdayLabel(weekday)} · ${fmt(startMin)}</div>
           <span class="slot-pool">${state.pool}</span>
           ${isHoliday(iso) ? `<span class="holiday-chip">${t("holiday.chip")}</span>` : ""}
         </div>
@@ -1715,7 +1811,7 @@ function openSlotModal(iso, startMin) {
 
       card.innerHTML = `
         <div class="slot-head">
-          <div class="slot-title" id="slot-title">${weekdayLabel(weekday)} · ${d}.${m}. · ${fmt(block.startMin)}–${fmt(block.endMin)}</div>
+          <div class="slot-title" id="slot-title">${weekdayLabel(weekday)} · ${fmt(block.startMin)}–${fmt(block.endMin)}</div>
           <span class="slot-pool">${state.pool}</span>
           ${isHoliday(iso) ? `<span class="holiday-chip">${t("holiday.chip")}</span>` : ""}
         </div>
@@ -1873,13 +1969,15 @@ function renderTrend() {
         const rounded = Math.round(v * 10) / 10;
         const level = v <= 0 ? 0 : levelFor(Math.max(1, Math.round(v)), maxLanes);
         el.className = `cell lane-${level}`;
+        const avgWhole = Math.max(0, Math.min(maxLanes, Math.round(v)));
+        const dotsViz = " · " + "●".repeat(avgWhole) + "○".repeat(maxLanes - avgWhole);
         el.title = t("trend.tooltip", {
           weekday: weekdayLabel(wd),
           time: fmt(startMin + c * slotMin),
           avg: rounded,
           max: maxLanes,
           samples: bucket.samples,
-        });
+        }) + dotsViz;
       }
       el.setAttribute("aria-label", el.title);
       if (!initialFocusCell) initialFocusCell = el;
