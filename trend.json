@@ -2,6 +2,7 @@
   "updated": "2026-04-22",
   "windowWeeks": 8,
   "totalObservations": 28,
+  "holidayDatesExcluded": [],
   "pools": {
     "25m": {
       "maxLanes": 4,

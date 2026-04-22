@@ -17,6 +17,14 @@ Zdroje:
 
 ## Ukážka
 
+> **Poznámka k snímkam:** hlavné dashboard screenshoty
+> (`screenshot-50m.png`, `screenshot-25m.png`) pochádzajú z čias pred
+> niektorými nedávnymi UI úpravami — nezachytávajú napríklad farebný
+> lane-dots indikátor v karte „Práve teraz", chipy
+> „nezvyčajne voľno / obsadené" a „sviatok", sparkline v karte „Dnes"
+> alebo popup nad bunkami heatmapy. Funkcionalita je však popísaná
+> v sekcii [Funkcie](#funkcie).
+
 <details open>
 <summary>50 m bazén (predvolený)</summary>
 
@@ -50,6 +58,44 @@ Téma sa prepína vpravo nad heatmapou a ukladá sa do `localStorage`.
 <summary>Vyhľadávač („Nájdite si čas“)</summary>
 
 ![Vyhľadávač voľných blokov](docs/screenshot-finder.png)
+
+</details>
+
+<details>
+<summary>Trend tab</summary>
+
+Záložka **Trend** ukazuje 7 × 76 heatmapu priemernej voľnosti dráh za
+posledných 8 týždňov, jeden riadok per deň v týždni. Dátumy uvedené
+v `pricing.json.holidays` sa pri priemerovaní vyfiltrujú. Každá bunka
+je klikateľná (klik aj Enter cez klávesovú navigáciu) a otvorí popup
+s priemerom + 🔗 tlačidlom na plný detail modal.
+
+_Snímka sa doplní — cieľové umiestnenie: [`docs/screenshot-trend.png`](docs/)._
+
+</details>
+
+<details>
+<summary>Popup nad bunkou heatmapy + detail modal</summary>
+
+Klik (alebo Enter) na bunku dashboard alebo trend heatmapy ukáže
+kompaktný popup so základnými údajmi — deň, čas, počet voľných dráh —
+a 🔗 tlačidlom, ktoré otvorí plný slot detail modal: priemer z trendu
+(zafarbený pri odchýlke ≥ 1,5 dráhy), chip „sviatok" ak je, akcie
+**Pridať do kalendára** (`.ics`), **Pridať do obľúbených**
+a **Skopírovať odkaz** (`?slot=YYYY-MM-DDTHH:MM`).
+
+_Snímky sa doplnia — cieľové umiestnenia: [`docs/screenshot-heatmap-popup.png`](docs/) a [`docs/screenshot-slot-modal.png`](docs/)._
+
+</details>
+
+<details>
+<summary>Sparkline v karte „Dnes“</summary>
+
+Inline mini-graf SVG zo 76 hodnôt `day.free` tesne pod nadpisom karty
+„Dnes" so zvislou žltou značkou v aktuálnom 15-min slote — prehľad
+celého dňa bez skoku do heatmapy.
+
+_Snímka sa doplní — cieľové umiestnenie: [`docs/screenshot-sparkline.png`](docs/)._
 
 </details>
 
@@ -103,10 +149,16 @@ Cenník — každá bunka má ⚠:
 - **Heatmapa 14 dní × 76 blokov** — farba podľa pomeru voľných/celkových
   dráh (4 úrovne + zatvorené), zvýraznený dnešný riadok a aktuálny stĺpec.
   Prepínateľné farebné témy (Semafor / Viridis / Modrá / Rozhranie 50 %).
-  **Klik (alebo Enter cez klávesovú navigáciu) na bunku** otvorí slot
-  detail modal s trend-priemerom, ICS, favorit a deep-link akciami.
+  **Klik (alebo Enter cez klávesovú navigáciu) na bunku** ukáže kompaktný
+  popup so základnými údajmi a 🔗 tlačidlo, ktoré otvorí plný slot detail
+  modal s trend-priemerom, ICS, favorit a deep-link akciami.
 - **Trend obsadenosti** — záložka **Trend** s 7×76 heatmapou priemernej
   voľnosti za posledných 8 týždňov, per deň-v-týždni a 15-min slot.
+  Dátumy uvedené v `pricing.json.holidays` sa pri priemerovaní
+  vyfiltrujú, takže sviatky neťahajú priemer daného dňa týždňa dole.
+  Bunky sú klikateľné (aj cez klávesnicu) — ukážu rovnaký popup so
+  základnými údajmi a 🔗 tlačidlom, ktoré otvorí slot detail modal
+  pre najbližší výskyt daného dňa v 14-dňovom rozvrhu.
 - **Sparkline dňa** — inline mini-graf krivky voľných dráh v karte „Dnes"
   so zvislou značkou aktuálneho slotu; prehľad celého dňa bez skoku
   do heatmapy.
@@ -135,6 +187,10 @@ Cenník — každá bunka má ⚠:
   sa medzitým vykreslia z `localStorage` cache.
 - **Stale cenník** — keď SHA-256 aktuálneho PDF cenníka na stránke bazéna
   nesedí s referenčnou kópiou, zobrazí sa žltý banner a ⚠ pri každej cene.
+- **Chips pre sviatky** — keď je dátum v `pricing.json.holidays`, karta
+  „Práve teraz", karta „Dnes", slot detail modal a share karta dostanú
+  fialový odznak **sviatok**; v heatmape má sviatočný deň subtílny tint
+  a ✦ mark v rowheadi.
 - **Slovenčina / Angličtina** — prepínač sk/en v hlavičke, jazyk sa ukladá
   do `localStorage` a rešpektuje `?lang=en` v URL.
 - **Prístupnosť** — heatmapa má `role="grid"` + `aria-label` na bunkách,
@@ -154,11 +210,10 @@ v [`TODO.md`](TODO.md).
       formát `schedule*.json`, len s iným pool-tabom.
 - [ ] **Odporúčač najlepšieho času** — využiť `trend.json` a ponúknuť
       „najtichšie okno tento týždeň" pre zadanú dĺžku + min. dráhy.
-- [ ] **Neistota v trende** — priemer v trende skrýva rozptyl. Zobraziť
-      min/max whiskers alebo druhú farebnú dimenziu.
-- [ ] **Trend citlivý na sviatky** — sviatky momentálne ťahajú dole
-      priemer daného dňa týždňa; stačí ich odfiltrovať v
-      `scripts/compute_trend.py`.
+- [ ] **Kalkulačka ceny** — typ vstupu × dĺžka × všedný deň/sviatok →
+      EUR, z `pricing.json`.
+- [ ] **Mesačný prehľad (1 bunka / deň)** — dlhšia farebná mriežka nad
+      rámec 14 dní, s priemerom z `trend.json`.
 - [ ] **Odber kalendára (`subscribe.ics`)** — denne generovaný ICS feed
       so všetkými verejnými blokmi na 14 dní.
 
@@ -189,10 +244,17 @@ workflow `update-data.yml` commituje čerstvé JSON-y do `main`,
 |---|---|
 | `index.html` | rozloženie stránky |
 | `styles.css` | štýly (tmavá téma) |
-| `app.js` | načítanie dát, render, vyhľadávač |
+| `app.js` | načítanie dát, render, vyhľadávač, modal |
+| `lib/helpers.js` | čisté helpery (pokryté `tests/helpers.test.mjs`) |
+| `i18n.json` | preklady (sk + en) |
 | `schedule.json` | údaje 25 m bazéna |
 | `schedule-50m.json` | údaje 50 m bazéna |
-| `pricing.json` | cenník |
+| `pricing.json` | cenník + `bands`, `holidays` |
+| `trend.json` | agregovaný trend obsadenosti (per pool × weekday × slot) |
+| `manifest.json`, `sw.js`, `icons/` | PWA (pridanie na plochu, offline cache) |
+| `og.png` | pred-renderovaný share obrázok (denný) |
+| `scripts/` | scraper (`update_data.py`), trend (`compute_trend.py`), OG (`generate_og.py`) |
+| `tests/` | pytest (scraper golden + trend holiday filter) a node `--test` (JS helpery) |
 | `docs/` | snímky pre README |
 
 ## Dátový formát rozvrhu
@@ -203,7 +265,7 @@ Každý súbor `schedule*.json` má rovnakú štruktúru:
 {
   "pool": "…",
   "source": "https://…",
-  "updated": "YYYY-MM-DD HH:MM",
+  "updated": "YYYY-MM-DD",
   "slotMinutes": 15,
   "dayStart": "05:00",
   "dayEnd": "24:00",

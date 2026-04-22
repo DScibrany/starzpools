@@ -12,10 +12,6 @@ projekt bude rozvíjať.
       `pricing.json` dnes slúži len na zobrazenie tabuľky; tento upgrade
       z neho robí nástroj. Pozor na reálne STARZ pravidlá (permanentky,
       zľavy, detské/seniorské sadzby).
-- [ ] **Chips pre sviatky v UI** — ak sa dátum zhoduje s
-      `pricing.json.holidays`, označiť deň v heatmape / karte „Dnes"
-      odznakom „sviatok" a pripojiť sviatočné hodiny/ceny. Komplementárne
-      k „Trend citlivý na sviatky" (to rieši dátovú stranu).
 - [ ] **Flexibilný watcher** — „ktorýkoľvek pracovný večer 18–20 s
       ≥2 dráhami ≥60 min" namiesto presného dňa+času. Súčasný watcher je
       príliš rigidný pre reálne plánovanie. Scan priestoru je malý
@@ -32,9 +28,6 @@ projekt bude rozvíjať.
 - [ ] **Neistota v trende** — priemer v trende skrýva rozptyl. Zobraziť
       min/max whiskers alebo druhú farebnú dimenziu, aby užívateľ videl,
       ktoré sloty sú premenlivé.
-- [ ] **Trend citlivý na sviatky** — sviatky momentálne ťahajú dole
-      priemer daného dňa týždňa. `pricing.json.holidays` je už dostupné,
-      stačí ich odfiltrovať v `scripts/compute_trend.py`.
 - [ ] **Odber kalendára (`subscribe.ics`)** — denne generovaný ICS feed
       so všetkými verejnými blokmi na 14 dní; jedno-klikové „Pridať do
       Google kalendára" miesto per-blok ICS.
@@ -83,6 +76,28 @@ projekt bude rozvíjať.
 
 Tieto položky sú pokryté aj v sekcii **Funkcie** hlavného README.
 
+- [x] **Trend citlivý na sviatky** — `scripts/compute_trend.py` teraz
+      načítava `pricing.json.holidays` cez `load_holidays()` a preskočí
+      každý `(pool, iso)` zápis, kde `iso` je sviatok, takže sviatočné
+      otváracie hodiny / nižšia návštevnosť neťahajú dole priemer daného
+      dňa týždňa. Výstupný `trend.json` má nové pole `holidayDatesExcluded`
+      (triedený zoznam) pre audit. Malformed / missing `pricing.json`
+      graceful-fallback-uje na prázdnu množinu sviatkov, takže skript
+      beží aj na čerstvom checkoute. Pokryté 4 unittestami
+      (`tests/test_compute_trend.py`) — mock-ujú `git_commits` /
+      `git_show_json` / `load_holidays` a overujú, že filter funguje
+      aj keď je zoznam sviatkov prázdny, a že `load_holidays` je
+      odolný voči I/O a JSON chybám.
+- [x] **Chips pre sviatky v UI** — `isHoliday(iso)` helper už existoval
+      (kontroluje `pricing.json.holidays`). Nový `.holiday-chip` CSS
+      pattern (farebne odlíšený od band-chip a unusual-chip) sa zobrazí
+      v karte „Práve teraz", karte „Dnes", v hlavičke slot detail modalu
+      a v share karte, keď je dnešný / zobrazený deň sviatok. V heatmape
+      dostane rowhead pre sviatočný deň subtílny fialový tint a ✦ mark
+      vedľa prípadného ★ fav-marku. Cell `title` + `aria-label`
+      (teda aj text v popupe) získajú sufix „· sviatok". Bez zmeny
+      v dátach — `pricing.json.holidays` je momentálne prázdne, chipy
+      sa zapnú automaticky, keď STARZ dáta pridá sviatky.
 - [x] **Kliknutie na bunku heatmapy → detail modal** — každá bunka
       heatmapy `role="gridcell"` je teraz klikateľná a volá existujúci
       `openSlotModal(iso, startMin)`. `data-col` sa prevádza na `startMin`

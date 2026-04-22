@@ -184,6 +184,10 @@ async function load() {
   setupGridCellClick();
   setupGridKeyboard();
   setupGridTooltip();
+  setupGridPopup(".grid-wrap", "grid", resolveMainCellSlot);
+  setupGridKeyboard("grid");
+  setupGridPopup(".trend-wrap", "trend-grid", resolveTrendCellSlot);
+  setupGridKeyboard("trend-grid");
   setupShareModal();
   setupSlotModal();
   renderPricingStaleBanner();
@@ -477,6 +481,17 @@ function renderBandChip(el, band) {
   el.textContent = bandLabel(band);
 }
 
+function renderHolidayChip(el, showHoliday) {
+  if (!el) return;
+  if (showHoliday) {
+    el.hidden = false;
+    el.textContent = t("holiday.chip");
+  } else {
+    el.hidden = true;
+    el.textContent = "";
+  }
+}
+
 function renderUnusualChip(el, delta) {
   if (!el) return;
   const threshold = 1.5;
@@ -683,6 +698,7 @@ function renderEmpty() {
   const card = document.getElementById("now-card");
   const dots = document.getElementById("now-dots");
   renderUnusualChip(document.getElementById("unusual-chip"), null);
+  renderHolidayChip(document.getElementById("holiday-chip"), false);
   card.classList.remove("live");
   pill.textContent = t("now.nodata");
   pill.className = "pill";
@@ -706,12 +722,14 @@ function renderNow(now, data) {
   const card = document.getElementById("now-card");
   const chip = document.getElementById("band-chip");
   const unusualChip = document.getElementById("unusual-chip");
+  const holidayChip = document.getElementById("holiday-chip");
   const pricesBox = document.getElementById("now-prices");
   const dots = document.getElementById("now-dots");
 
   if (!day) {
     renderBandChip(chip, "outside");
     renderUnusualChip(unusualChip, null);
+    renderHolidayChip(holidayChip, false);
     card.classList.remove("live");
     pill.textContent = t("now.outofschedule");
     pill.className = "pill";
@@ -730,6 +748,7 @@ function renderNow(now, data) {
   const currentFree = (idx >= 0 && idx < day.free.length) ? day.free[idx] : 0;
   const band = currentFree > 0 ? bandForDate(now) : "outside";
   renderBandChip(chip, band);
+  renderHolidayChip(holidayChip, isHoliday(day.date));
   const avg = (currentFree > 0) ? trendAvgFor(state.pool, day.weekday, idx) : null;
   renderUnusualChip(unusualChip, avg != null ? currentFree - avg : null);
 
@@ -834,14 +853,15 @@ function renderHeatmap(now, data) {
     const isToday = day.date === todayIso;
     const head = document.createElement("div");
     const hasFav = rowHasFavorite(state.pool, day.weekday);
-    head.className = "cell rowhead" + (isToday ? " today" : "") + (hasFav ? " has-fav" : "");
+    const isHol = isHoliday(day.date);
+    head.className = "cell rowhead" + (isToday ? " today" : "") + (hasFav ? " has-fav" : "") + (isHol ? " holiday" : "");
     head.setAttribute("role", "rowheader");
     head.setAttribute("aria-rowindex", String(r + 2));
     head.setAttribute("aria-colindex", "1");
     const [, m, d] = day.date.split("-");
     const dow = weekdayShort(day.weekday);
-    head.setAttribute("aria-label", `${weekdayLabel(day.weekday)} ${d}.${m}.${hasFav ? t("grid.aria_row_fav") : ""}`);
-    head.innerHTML = `<span class="dow">${dow}</span> <span class="date">${d}.${m}.</span>${hasFav ? '<span class="fav-mark" aria-hidden="true">★</span>' : ""}`;
+    head.setAttribute("aria-label", `${weekdayLabel(day.weekday)} ${d}.${m}.${isHol ? t("grid.aria_row_holiday") : ""}${hasFav ? t("grid.aria_row_fav") : ""}`);
+    head.innerHTML = `<span class="dow">${dow}</span> <span class="date">${d}.${m}.</span>${isHol ? `<span class="hol-mark" title="${t("holiday.chip")}" aria-hidden="true">✦</span>` : ""}${hasFav ? '<span class="fav-mark" aria-hidden="true">★</span>' : ""}`;
     grid.appendChild(head);
 
     for (let c = 0; c < cols; c++) {
@@ -863,7 +883,9 @@ function renderHeatmap(now, data) {
       const lanesText = raw === 0 ? t("grid.no_free_lanes") : t("grid.lanes_ratio", { free: raw, max: data.maxLanes });
       const isFavCell = cellFavoritedFor(state.pool, day.weekday, s);
       if (isFavCell) el.classList.add("fav");
-      el.setAttribute("aria-label", t("grid.aria_cell", { weekday: weekdayLabel(day.weekday), date: `${d}.${m}.`, time: fmt(s), lanes: lanesText }) + (isFavCell ? " " + t("grid.aria_fav") : ""));
+      const holSuffix = isHoliday(day.date) ? ` · ${t("holiday.chip")}` : "";
+      el.title = t("grid.tooltip", { weekday: weekdayLabel(day.weekday), date: `${d}.${m}.`, from: fmt(s), to: fmt(s + slot), lanes: lanesShort }) + holSuffix + (isFavCell ? " · ★" : "");
+      el.setAttribute("aria-label", t("grid.aria_cell", { weekday: weekdayLabel(day.weekday), date: `${d}.${m}.`, time: fmt(s), lanes: lanesText }) + (isFavCell ? " " + t("grid.aria_fav") : "") + (isHoliday(day.date) ? t("grid.aria_row_holiday") : ""));
       el.dataset.date = day.date;
       el.dataset.row = String(r);
       el.dataset.col = String(c);
@@ -880,8 +902,8 @@ function renderHeatmap(now, data) {
   renderLegend(data.maxLanes);
 }
 
-function setupGridKeyboard() {
-  const grid = document.getElementById("grid");
+function setupGridKeyboard(gridId) {
+  const grid = document.getElementById(gridId);
   if (!grid) return;
   grid.addEventListener("keydown", (e) => {
     const cell = e.target.closest?.(".cell[role='gridcell']");
@@ -912,18 +934,92 @@ function setupGridKeyboard() {
   });
 }
 
-function setupGridCellClick() {
-  const grid = document.getElementById("grid");
-  if (!grid) return;
-  grid.addEventListener("click", (e) => {
-    const cell = e.target.closest(".cell[role='gridcell'][data-date][data-col]");
-    if (!cell) return;
-    const data = activeData();
-    if (!data) return;
-    const col = Number(cell.dataset.col);
-    const startMin = toMin(data.dayStart) + col * data.slotMinutes;
-    openSlotModal(cell.dataset.date, startMin);
+function nextDateForWeekday(data, weekday) {
+  if (!data?.days) return null;
+  return data.days.find(d => d.weekday === weekday)?.date || null;
+}
+
+function resolveMainCellSlot(cell) {
+  const data = activeData();
+  if (!data) return null;
+  const iso = cell.dataset.date;
+  if (!iso) return null;
+  const col = Number(cell.dataset.col);
+  return { iso, startMin: toMin(data.dayStart) + col * data.slotMinutes };
+}
+
+function resolveTrendCellSlot(cell) {
+  const data = activeData();
+  if (!data) return null;
+  const iso = nextDateForWeekday(data, cell.dataset.wd);
+  if (!iso) return null;
+  const col = Number(cell.dataset.col);
+  return { iso, startMin: toMin(data.dayStart) + col * data.slotMinutes };
+}
+
+function setupGridPopup(wrapSelector, gridId, resolver) {
+  const wrap = document.querySelector(wrapSelector);
+  const grid = document.getElementById(gridId);
+  if (!wrap || !grid) return;
+
+  const pop = document.createElement("div");
+  pop.className = "grid-popup";
+  pop.hidden = true;
+  wrap.appendChild(pop);
+
+  const clearSelected = () => {
+    wrap.querySelectorAll(".cell.selected").forEach(el => el.classList.remove("selected"));
+  };
+  const hide = () => {
+    pop.hidden = true;
+    pop.dataset.forCell = "";
+    clearSelected();
+  };
+
+  wrap.addEventListener("click", (e) => {
+    if (e.target.closest(".grid-popup")) return;
+    const cell = e.target.closest(".cell[role='gridcell']");
+    if (!cell) { hide(); return; }
+    const key = `${cell.dataset.row}:${cell.dataset.col}`;
+    if (!pop.hidden && pop.dataset.forCell === key) { hide(); return; }
+    const resolved = resolver(cell);
+    clearSelected();
+    cell.classList.add("selected");
+    const text = cell.title || cell.getAttribute("aria-label") || "";
+    const linkBtn = resolved
+      ? `<button type="button" class="grid-popup-link" title="${t("grid.open_detail")}" aria-label="${t("grid.open_detail")}">🔗</button>`
+      : "";
+    pop.innerHTML = `<span class="grid-popup-text">${text}</span>${linkBtn}`;
+    pop.hidden = false;
+    pop.dataset.forCell = key;
+    if (resolved) {
+      pop.querySelector(".grid-popup-link")?.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        hide();
+        openSlotModal(resolved.iso, resolved.startMin);
+      });
+    }
+    requestAnimationFrame(() => {
+      const cr = cell.getBoundingClientRect();
+      const wr = wrap.getBoundingClientRect();
+      const popW = pop.offsetWidth;
+      const popH = pop.offsetHeight;
+      let left = cr.left - wr.left + wrap.scrollLeft + cr.width / 2 - popW / 2;
+      const maxLeft = wrap.scrollLeft + wrap.clientWidth - popW - 6;
+      left = Math.max(wrap.scrollLeft + 6, Math.min(left, maxLeft));
+      let top = cr.top - wr.top + wrap.scrollTop - popH - 8;
+      if (top < wrap.scrollTop + 2) top = cr.bottom - wr.top + wrap.scrollTop + 8;
+      pop.style.left = left + "px";
+      pop.style.top = top + "px";
+    });
   });
+
+  document.addEventListener("click", (e) => {
+    if (pop.hidden) return;
+    if (!e.target.closest(wrapSelector)) hide();
+  });
+  wrap.addEventListener("scroll", hide, { passive: true });
+  window.addEventListener("resize", hide);
 }
 
 function ensureGridTip() {
@@ -1106,9 +1202,10 @@ function renderTodayBlocks(now, data) {
     : "";
 
   const sparkHtml = todaySparkHTML(day, data, slotIndexForNow(data));
+  const holidayChip = isHoliday(day.date) ? `<span class="holiday-chip">${t("holiday.chip")}</span>` : "";
 
   box.innerHTML = `
-    <h3>${t("today.title")} · ${weekdayLabel(day.weekday)} ${d}.${m}.
+    <h3>${t("today.title")} · ${weekdayLabel(day.weekday)} ${d}.${m}. ${holidayChip}
       <button type="button" class="share-trigger" title="${t("today.share_tip")}">${t("today.share")}</button>
     </h3>
     ${sparkHtml}
@@ -1543,10 +1640,13 @@ function buildShareCardHTML(data, now) {
     weekday: "long", day: "numeric", month: "numeric", year: "numeric",
   });
   const updatedStr = data?.updated ? t("share.data", { date: data.updated }) : "";
+  const todayIso = todayISO(now);
+  const holChip = isHoliday(todayIso) ? `<span class="holiday-chip">${t("holiday.chip")}</span>` : "";
   const headHTML = `
     <div class="sc-head">
       <div class="sc-brand">${t("share.brand")}</div>
       <div class="sc-pool">${poolLabel}</div>
+      ${holChip}
       <div class="sc-date">${dateStr}</div>
     </div>`;
   const footHTML = `
@@ -1683,6 +1783,7 @@ function openSlotModal(iso, startMin) {
         <div class="slot-head">
           <div class="slot-title" id="slot-title">${weekdayLabel(weekday)} · ${fmt(startMin)}</div>
           <span class="slot-pool">${state.pool}</span>
+          ${isHoliday(iso) ? `<span class="holiday-chip">${t("holiday.chip")}</span>` : ""}
         </div>
         <div class="slot-body muted">${t("slot.closed")}</div>
       `;
@@ -1712,6 +1813,7 @@ function openSlotModal(iso, startMin) {
         <div class="slot-head">
           <div class="slot-title" id="slot-title">${weekdayLabel(weekday)} · ${fmt(block.startMin)}–${fmt(block.endMin)}</div>
           <span class="slot-pool">${state.pool}</span>
+          ${isHoliday(iso) ? `<span class="holiday-chip">${t("holiday.chip")}</span>` : ""}
         </div>
         <div class="slot-lanes lane-${level}">
           <span class="slot-lanes-big">${block.lanes} / ${maxLanes}</span>
@@ -1825,6 +1927,8 @@ function renderTrend() {
   grid.innerHTML = "";
   grid.setAttribute("role", "grid");
   grid.setAttribute("aria-label", t("trend.title"));
+  grid.setAttribute("aria-rowcount", String(WEEKDAYS.length + 1));
+  grid.setAttribute("aria-colcount", String(cols + 1));
 
   const corner = document.createElement("div");
   corner.className = "cell header rowhead";
@@ -1841,7 +1945,9 @@ function renderTrend() {
     grid.appendChild(el);
   }
 
-  for (const wd of WEEKDAYS) {
+  let initialFocusCell = null;
+  for (let r = 0; r < WEEKDAYS.length; r++) {
+    const wd = WEEKDAYS[r];
     const bucket = byWd[wd];
     const head = document.createElement("div");
     head.className = "cell rowhead";
@@ -1851,6 +1957,11 @@ function renderTrend() {
     for (let c = 0; c < cols; c++) {
       const v = avg[c];
       const el = document.createElement("div");
+      el.setAttribute("role", "gridcell");
+      el.setAttribute("tabindex", "-1");
+      el.dataset.wd = wd;
+      el.dataset.row = String(r);
+      el.dataset.col = String(c);
       if (!bucket || v == null) {
         el.className = "cell lane-0";
         el.title = t("trend.tooltip_nodata", { weekday: weekdayLabel(wd), time: fmt(startMin + c * slotMin) });
@@ -1868,9 +1979,13 @@ function renderTrend() {
           samples: bucket.samples,
         }) + dotsViz;
       }
+      el.setAttribute("aria-label", el.title);
+      if (!initialFocusCell) initialFocusCell = el;
       grid.appendChild(el);
     }
   }
+
+  if (initialFocusCell) initialFocusCell.setAttribute("tabindex", "0");
 
   renderTrendLegend(legend, maxLanes);
 }
