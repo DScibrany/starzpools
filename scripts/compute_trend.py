@@ -4,8 +4,10 @@
 For every snapshot (commit) in the last N weeks we load
 `schedule.json` (25 m) and `schedule-50m.json` (50 m) at that commit,
 and record each `(pool, date) -> free[]` once using the MOST RECENT
-snapshot that contained that date. We then average `free[slotIdx]`
-across all recorded dates grouped by weekday.
+snapshot that contained that date. Dates listed in
+`pricing.json.holidays` are excluded so that holiday-specific opening
+hours don't skew the per-weekday averages. We then average
+`free[slotIdx]` across all recorded dates grouped by weekday.
 
 Output: `trend.json` at the repo root.
 """
@@ -19,6 +21,23 @@ from pathlib import Path
 
 POOLS = {"25m": "schedule.json", "50m": "schedule-50m.json"}
 DEFAULT_WEEKS = 8
+PRICING_PATH = Path("pricing.json")
+
+
+def load_holidays() -> set[str]:
+    """Return the set of ISO dates declared as holidays in pricing.json.
+
+    Falls back to an empty set when pricing.json is missing or malformed
+    so the script stays functional on fresh checkouts / partial data.
+    """
+    try:
+        pricing = json.loads(PRICING_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return set()
+    holidays = pricing.get("holidays")
+    if not isinstance(holidays, list):
+        return set()
+    return {h for h in holidays if isinstance(h, str)}
 
 
 def git_commits(paths: list[str], weeks: int) -> list[str]:
@@ -48,9 +67,11 @@ def git_show_json(sha: str, path: str):
 
 def compute(weeks: int = DEFAULT_WEEKS) -> dict:
     commits = git_commits(list(POOLS.values()), weeks)
+    holidays = load_holidays()
     # (pool, date_iso) -> (weekday, free[])
     observations: dict[tuple[str, str], tuple[str, list]] = {}
     pool_meta: dict[str, dict] = {}
+    skipped_holiday_dates: set[str] = set()
 
     for sha in commits:  # already newest-first
         for pool, path in POOLS.items():
@@ -72,6 +93,9 @@ def compute(weeks: int = DEFAULT_WEEKS) -> dict:
                 wd = day.get("weekday")
                 free = day.get("free")
                 if not iso or not wd or not isinstance(free, list):
+                    continue
+                if iso in holidays:
+                    skipped_holiday_dates.add(iso)
                     continue
                 key = (pool, iso)
                 if key in observations:
@@ -112,6 +136,7 @@ def compute(weeks: int = DEFAULT_WEEKS) -> dict:
         "updated": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         "windowWeeks": weeks,
         "totalObservations": len(observations),
+        "holidayDatesExcluded": sorted(skipped_holiday_dates),
         "pools": result_pools,
     }
 
@@ -128,7 +153,12 @@ def main() -> int:
     out.write_text(json.dumps(trend, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     pools_count = len(trend.get("pools", {}))
     obs = trend.get("totalObservations", 0)
-    print(f"Wrote {out} — {pools_count} pool(s), {obs} unique date observations, window={weeks}w")
+    excluded = len(trend.get("holidayDatesExcluded", []))
+    excl_note = f", {excluded} holiday date(s) excluded" if excluded else ""
+    print(
+        f"Wrote {out} — {pools_count} pool(s), {obs} unique date observations, "
+        f"window={weeks}w{excl_note}"
+    )
     return 0
 
 

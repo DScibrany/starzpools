@@ -108,6 +108,8 @@ Cenník — každá bunka má ⚠:
   modal s trend-priemerom, ICS, favorit a deep-link akciami.
 - **Trend obsadenosti** — záložka **Trend** s 7×76 heatmapou priemernej
   voľnosti za posledných 8 týždňov, per deň-v-týždni a 15-min slot.
+  Dátumy uvedené v `pricing.json.holidays` sa pri priemerovaní
+  vyfiltrujú, takže sviatky neťahajú priemer daného dňa týždňa dole.
   Bunky sú klikateľné (aj cez klávesnicu) — ukážu rovnaký popup so
   základnými údajmi a 🔗 tlačidlom, ktoré otvorí slot detail modal
   pre najbližší výskyt daného dňa v 14-dňovom rozvrhu.
