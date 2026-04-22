@@ -107,6 +107,8 @@ Cenník — každá bunka má ⚠:
   detail modal s trend-priemerom, ICS, favorit a deep-link akciami.
 - **Trend obsadenosti** — záložka **Trend** s 7×76 heatmapou priemernej
   voľnosti za posledných 8 týždňov, per deň-v-týždni a 15-min slot.
+  Bunky sú klikateľné (aj cez klávesnicu) — otvoria slot detail modal
+  pre najbližšie výskyt daného dňa v 14-dňovom rozvrhu.
 - **Sparkline dňa** — inline mini-graf krivky voľných dráh v karte „Dnes"
   so zvislou značkou aktuálneho slotu; prehľad celého dňa bez skoku
   do heatmapy.
