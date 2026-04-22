@@ -103,12 +103,14 @@ Cenník — každá bunka má ⚠:
 - **Heatmapa 14 dní × 76 blokov** — farba podľa pomeru voľných/celkových
   dráh (4 úrovne + zatvorené), zvýraznený dnešný riadok a aktuálny stĺpec.
   Prepínateľné farebné témy (Semafor / Viridis / Modrá / Rozhranie 50 %).
-  **Klik (alebo Enter cez klávesovú navigáciu) na bunku** otvorí slot
-  detail modal s trend-priemerom, ICS, favorit a deep-link akciami.
+  **Klik (alebo Enter cez klávesovú navigáciu) na bunku** ukáže kompaktný
+  popup so základnými údajmi a 🔗 tlačidlo, ktoré otvorí plný slot detail
+  modal s trend-priemerom, ICS, favorit a deep-link akciami.
 - **Trend obsadenosti** — záložka **Trend** s 7×76 heatmapou priemernej
   voľnosti za posledných 8 týždňov, per deň-v-týždni a 15-min slot.
-  Bunky sú klikateľné (aj cez klávesnicu) — otvoria slot detail modal
-  pre najbližšie výskyt daného dňa v 14-dňovom rozvrhu.
+  Bunky sú klikateľné (aj cez klávesnicu) — ukážu rovnaký popup so
+  základnými údajmi a 🔗 tlačidlom, ktoré otvorí slot detail modal
+  pre najbližší výskyt daného dňa v 14-dňovom rozvrhu.
 - **Sparkline dňa** — inline mini-graf krivky voľných dráh v karte „Dnes"
   so zvislou značkou aktuálneho slotu; prehľad celého dňa bez skoku
   do heatmapy.

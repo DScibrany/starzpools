@@ -687,6 +687,44 @@ main { padding: 16px 24px 32px; max-width: 1200px; margin: 0 auto; }
 
 .grid-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); position: relative; }
 
+.grid-popup {
+  position: absolute;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 10px;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--text);
+  background: #0a1c2e;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  white-space: nowrap;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+}
+.grid-popup[hidden] { display: none; }
+.grid-popup .grid-popup-text { font-variant-numeric: tabular-nums; }
+.grid-popup .grid-popup-link {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 2px 6px;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+.grid-popup .grid-popup-link:hover { border-color: var(--accent); filter: brightness(1.15); }
+.grid-popup .grid-popup-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.cell.selected {
+  position: relative;
+  z-index: 4;
+  outline: 2px solid #ffffff;
+  outline-offset: -2px;
+}
+
 .grid {
   display: grid;
   gap: 1px;
@@ -882,6 +920,7 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; }
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
+  position: relative;
 }
 .trend-grid {
   display: grid;

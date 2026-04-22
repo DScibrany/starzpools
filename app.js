@@ -181,9 +181,9 @@ async function load() {
   populateWeekdayOptions();
   refreshLaneOptions();
   setupLinks();
-  setupGridCellClick();
+  setupGridPopup(".grid-wrap", "grid", resolveMainCellSlot);
   setupGridKeyboard("grid");
-  setupTrendCellClick();
+  setupGridPopup(".trend-wrap", "trend-grid", resolveTrendCellSlot);
   setupGridKeyboard("trend-grid");
   setupShareModal();
   setupSlotModal();
@@ -905,39 +905,92 @@ function setupGridKeyboard(gridId) {
   });
 }
 
-function setupGridCellClick() {
-  const grid = document.getElementById("grid");
-  if (!grid) return;
-  grid.addEventListener("click", (e) => {
-    const cell = e.target.closest(".cell[role='gridcell'][data-date][data-col]");
-    if (!cell) return;
-    const data = activeData();
-    if (!data) return;
-    const col = Number(cell.dataset.col);
-    const startMin = toMin(data.dayStart) + col * data.slotMinutes;
-    openSlotModal(cell.dataset.date, startMin);
-  });
-}
-
 function nextDateForWeekday(data, weekday) {
   if (!data?.days) return null;
   return data.days.find(d => d.weekday === weekday)?.date || null;
 }
 
-function setupTrendCellClick() {
-  const grid = document.getElementById("trend-grid");
-  if (!grid) return;
-  grid.addEventListener("click", (e) => {
-    const cell = e.target.closest(".cell[role='gridcell'][data-wd][data-col]");
-    if (!cell) return;
-    const data = activeData();
-    if (!data) return;
-    const iso = nextDateForWeekday(data, cell.dataset.wd);
-    if (!iso) return;
-    const col = Number(cell.dataset.col);
-    const startMin = toMin(data.dayStart) + col * data.slotMinutes;
-    openSlotModal(iso, startMin);
+function resolveMainCellSlot(cell) {
+  const data = activeData();
+  if (!data) return null;
+  const iso = cell.dataset.date;
+  if (!iso) return null;
+  const col = Number(cell.dataset.col);
+  return { iso, startMin: toMin(data.dayStart) + col * data.slotMinutes };
+}
+
+function resolveTrendCellSlot(cell) {
+  const data = activeData();
+  if (!data) return null;
+  const iso = nextDateForWeekday(data, cell.dataset.wd);
+  if (!iso) return null;
+  const col = Number(cell.dataset.col);
+  return { iso, startMin: toMin(data.dayStart) + col * data.slotMinutes };
+}
+
+function setupGridPopup(wrapSelector, gridId, resolver) {
+  const wrap = document.querySelector(wrapSelector);
+  const grid = document.getElementById(gridId);
+  if (!wrap || !grid) return;
+
+  const pop = document.createElement("div");
+  pop.className = "grid-popup";
+  pop.hidden = true;
+  wrap.appendChild(pop);
+
+  const clearSelected = () => {
+    wrap.querySelectorAll(".cell.selected").forEach(el => el.classList.remove("selected"));
+  };
+  const hide = () => {
+    pop.hidden = true;
+    pop.dataset.forCell = "";
+    clearSelected();
+  };
+
+  wrap.addEventListener("click", (e) => {
+    if (e.target.closest(".grid-popup")) return;
+    const cell = e.target.closest(".cell[role='gridcell']");
+    if (!cell) { hide(); return; }
+    const key = `${cell.dataset.row}:${cell.dataset.col}`;
+    if (!pop.hidden && pop.dataset.forCell === key) { hide(); return; }
+    const resolved = resolver(cell);
+    clearSelected();
+    cell.classList.add("selected");
+    const text = cell.title || cell.getAttribute("aria-label") || "";
+    const linkBtn = resolved
+      ? `<button type="button" class="grid-popup-link" title="${t("grid.open_detail")}" aria-label="${t("grid.open_detail")}">🔗</button>`
+      : "";
+    pop.innerHTML = `<span class="grid-popup-text">${text}</span>${linkBtn}`;
+    pop.hidden = false;
+    pop.dataset.forCell = key;
+    if (resolved) {
+      pop.querySelector(".grid-popup-link")?.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        hide();
+        openSlotModal(resolved.iso, resolved.startMin);
+      });
+    }
+    requestAnimationFrame(() => {
+      const cr = cell.getBoundingClientRect();
+      const wr = wrap.getBoundingClientRect();
+      const popW = pop.offsetWidth;
+      const popH = pop.offsetHeight;
+      let left = cr.left - wr.left + wrap.scrollLeft + cr.width / 2 - popW / 2;
+      const maxLeft = wrap.scrollLeft + wrap.clientWidth - popW - 6;
+      left = Math.max(wrap.scrollLeft + 6, Math.min(left, maxLeft));
+      let top = cr.top - wr.top + wrap.scrollTop - popH - 8;
+      if (top < wrap.scrollTop + 2) top = cr.bottom - wr.top + wrap.scrollTop + 8;
+      pop.style.left = left + "px";
+      pop.style.top = top + "px";
+    });
   });
+
+  document.addEventListener("click", (e) => {
+    if (pop.hidden) return;
+    if (!e.target.closest(wrapSelector)) hide();
+  });
+  wrap.addEventListener("scroll", hide, { passive: true });
+  window.addEventListener("resize", hide);
 }
 
 function renderLegend(max) {
