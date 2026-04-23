@@ -9,6 +9,10 @@ on:
 
 permissions:
   contents: write
+  # Needed so the final step can dispatch pages.yml. Commits pushed with
+  # GITHUB_TOKEN don't fire `on: push` (GitHub's recursion safeguard), so
+  # Pages has to be triggered explicitly via workflow_dispatch.
+  actions: write
 
 concurrency:
   group: update-data
@@ -56,29 +60,49 @@ jobs:
         run: python scripts/compute_trend.py 8
 
       - name: Commit trend update
+        id: trend
         run: |
           set -e
           if git diff --quiet -- trend.json; then
             echo "No trend changes to commit."
+            echo "committed=false" >> "$GITHUB_OUTPUT"
           else
             git add trend.json
             DATE=$(date -u +'%Y-%m-%d %H:%M')
             git commit -m "Trend refresh ${DATE} [skip ci]"
+            echo "committed=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Regenerate OG preview image
         run: python scripts/generate_og.py
 
       - name: Commit OG image update
+        id: og
         run: |
           set -e
           if git diff --quiet -- og.png; then
             echo "No OG image changes to commit."
+            echo "committed=false" >> "$GITHUB_OUTPUT"
           else
             git add og.png
             DATE=$(date -u +'%Y-%m-%d %H:%M')
             git commit -m "OG preview refresh ${DATE} [skip ci]"
+            echo "committed=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Push
+        id: push
+        if: >-
+          steps.refresh.outputs.committed == 'true' ||
+          steps.trend.outputs.committed == 'true' ||
+          steps.og.outputs.committed == 'true'
         run: git push
+
+      - name: Trigger Pages deploy
+        # Pushes from GITHUB_TOKEN don't fire pages.yml's `on: push`, and
+        # our refresh commits carry [skip ci] anyway. Dispatch pages.yml
+        # explicitly so fresh data actually reaches GitHub Pages.
+        if: steps.push.outcome == 'success' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run pages.yml --ref main
