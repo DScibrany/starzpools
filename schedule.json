@@ -1,7 +1,7 @@
 {
   "pool": "Mestská plaváreň Pasienky 25 m",
   "source": "https://bratislava.sk/vzdelavanie-a-volny-cas/starz/prevadzky-sportoviska/mestska-plavaren-pasienky-25m",
-  "updated": "2026-05-05 22:18",
+  "updated": "2026-05-06 00:13",
   "note": "Hodnoty = počet voľných dráh pre verejnosť v danom 15-min bloku (max 4). Zdroj: STARZ tabuľka.",
   "timezone": "Europe/Bratislava",
   "slotMinutes": 15,
