@@ -173,6 +173,29 @@
       <div class="pricing" id="pricing">
         <h2 class="section-title" data-i18n="pricing.title">Cenník — STARZ Mestská plaváreň Pasienky</h2>
         <div id="pricing-banner" class="pricing-banner" style="display:none"></div>
+        <section class="pricing-calc" id="pricing-calc" aria-labelledby="pricing-calc-title">
+          <h3 id="pricing-calc-title" data-i18n="calc.title">Kalkulačka ceny</h3>
+          <p class="calc-hint muted" id="calc-hint"></p>
+          <div class="calc-row">
+            <fieldset class="calc-field">
+              <legend data-i18n="calc.category">Typ vstupenky</legend>
+              <label><input type="radio" name="calc-cat" value="adult" checked /> <span data-i18n="calc.cat.adult">Štandard</span></label>
+              <label><input type="radio" name="calc-cat" value="reduced" /> <span data-i18n="calc.cat.reduced">Zľavnené</span></label>
+            </fieldset>
+            <fieldset class="calc-field">
+              <legend data-i18n="calc.duration">Dĺžka</legend>
+              <label><input type="radio" name="calc-dur" value="60" checked /> <span data-i18n="calc.dur.60">60 min</span></label>
+              <label><input type="radio" name="calc-dur" value="90" /> <span data-i18n="calc.dur.90">90 min</span></label>
+            </fieldset>
+            <label class="calc-input"><span data-i18n="calc.date">Dátum</span>
+              <input type="date" id="calc-date" />
+            </label>
+            <label class="calc-input"><span data-i18n="calc.time">Čas</span>
+              <input type="time" id="calc-time" step="900" />
+            </label>
+          </div>
+          <div class="calc-result" id="calc-result" role="status" aria-live="polite"></div>
+        </section>
         <p id="pricing-note" class="muted pricing-note" style="display:none"></p>
         <div id="pricing-body" class="pricing-body"></div>
         <p class="muted pricing-foot"></p>
@@ -220,6 +243,7 @@
   </div>
 
   <script src="lib/helpers.js"></script>
-  <script src="app.js"></script>
+  <script src="lib/pricing-calc.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
