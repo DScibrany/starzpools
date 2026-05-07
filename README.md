@@ -227,16 +227,25 @@ Otvorené nápady na ďalšie iterácie — nič z toho nie je blokujúce. Kompl
 zoznam (vrátane archívu dokončených položiek a internej infraštruktúry) je
 v [`TODO.md`](TODO.md).
 
-- [ ] **Ďalšie STARZ bazény** — Rosnička, Delfín, Tehelné pole; rovnaký
-      formát `schedule*.json`, len s iným pool-tabom.
-- [ ] **Odporúčač najlepšieho času** — využiť `trend.json` a ponúknuť
-      „najtichšie okno tento týždeň" pre zadanú dĺžku + min. dráhy.
 - [ ] **Flexibilný watcher** — „ktorýkoľvek pracovný večer 18–20
       s ≥ 2 dráhami ≥ 60 min" namiesto presného dňa + času.
 - [ ] **Mesačný prehľad (1 bunka / deň)** — dlhšia farebná mriežka nad
       rámec 14 dní, s priemerom z `trend.json`.
+- [ ] **Ďalšie STARZ bazény** — Rosnička, Delfín, Tehelné pole; rovnaký
+      formát `schedule*.json`, len s iným pool-tabom.
+- [ ] **Odporúčač najlepšieho času** — využiť `trend.json` a ponúknuť
+      „najtichšie okno tento týždeň" pre zadanú dĺžku + min. dráhy.
+- [ ] **Neistota v trende** — priemer skrýva rozptyl; zobraziť min/max
+      whiskers alebo druhú farebnú dimenziu, aby užívateľ videl, ktoré
+      sloty sú premenlivé.
 - [ ] **Odber kalendára (`subscribe.ics`)** — denne generovaný ICS feed
       so všetkými verejnými blokmi na 14 dní.
+- [ ] **Check-in / check-out do bazéna** — opt-in flow s geolokáciou +
+      rotujúcim QR pri vstupe; reálna obsadenosť budovy nad rámec
+      oficiálnych dráh. Vyžaduje backend.
+- [ ] **Reálne Web Push cez Cloudflare Worker** — notifikácie aj pri
+      zatvorenom tabe (VAPID + KV); rozbíja „static only" puritu, ale
+      z UX pohľadu najväčší skok zo zoznamu.
 
 ## Spustenie
 
