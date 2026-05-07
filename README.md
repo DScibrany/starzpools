@@ -107,6 +107,20 @@ _Snímka sa doplní — cieľové umiestnenie: [`docs/screenshot-sparkline.png`]
 </details>
 
 <details>
+<summary>Kalkulačka ceny</summary>
+
+V záložke **Cenník** je nad tabuľkou panel **Kalkulačka ceny**. Vyberte
+typ vstupenky (štandard / zľavnené ŤZP-do-18), dĺžku (60 / 90 min),
+dátum a čas — dashboard ukáže cenu v EUR pre **aktívny bazén** (50 m
+alebo 25 m, prepínač hore), kód cenníkového riadku, badge pásma
+(špička / mimo špičky), badge sviatku a v prechodnom období na 25 m
+bazéne aj poznámku o jednotnej cene 3,00 € / 90 min.
+
+_Snímka sa doplní — cieľové umiestnenie: [`docs/screenshot-calc.png`](docs/)._
+
+</details>
+
+<details>
 <summary>Mobilné zobrazenie</summary>
 
 ![Mobilné zobrazenie](docs/screenshot-mobile.png)
@@ -198,6 +212,13 @@ Cenník — každá bunka má ⚠:
 - **Externé odkazy** — tlačidlá na oficiálnu stránku vybraného bazéna, na
   zdrojovú tabuľku STARZ a na PDF cenník.
 - **Cenník** — karta s cenami z `pricing.json`.
+- **Kalkulačka ceny** — panel v záložke **Cenník**: typ vstupenky
+  (štandard / zľavnené) × dĺžka (60 / 90 min) × dátum + čas →
+  cena v EUR pre aktívny bazén, s detekciou pásma (špička / mimo špičky),
+  sviatku a prechodného obdobia (jednotná cena 3,00 € na 25 m bazéne do
+  `transitionalUntil`). Mimo predaja vstupeniek (napr. 3:00 / 23:00)
+  zobrazí chybu, lebo `lib/pricing-calc.js` má striktnejšiu band-detekciu
+  ako pôvodná logika v karte „Práve teraz".
 - Automatická obnova každých 30 s.
 
 ## TODO
@@ -210,8 +231,8 @@ v [`TODO.md`](TODO.md).
       formát `schedule*.json`, len s iným pool-tabom.
 - [ ] **Odporúčač najlepšieho času** — využiť `trend.json` a ponúknuť
       „najtichšie okno tento týždeň" pre zadanú dĺžku + min. dráhy.
-- [ ] **Kalkulačka ceny** — typ vstupu × dĺžka × všedný deň/sviatok →
-      EUR, z `pricing.json`.
+- [ ] **Flexibilný watcher** — „ktorýkoľvek pracovný večer 18–20
+      s ≥ 2 dráhami ≥ 60 min" namiesto presného dňa + času.
 - [ ] **Mesačný prehľad (1 bunka / deň)** — dlhšia farebná mriežka nad
       rámec 14 dní, s priemerom z `trend.json`.
 - [ ] **Odber kalendára (`subscribe.ics`)** — denne generovaný ICS feed
@@ -244,8 +265,14 @@ workflow `update-data.yml` commituje čerstvé JSON-y do `main`,
 |---|---|
 | `index.html` | rozloženie stránky |
 | `styles.css` | štýly (tmavá téma) |
-| `app.js` | načítanie dát, render, vyhľadávač, modal |
-| `lib/helpers.js` | čisté helpery (pokryté `tests/helpers.test.mjs`) |
+| `app.js` | tenký bootstrap (`<script type="module">`) — `load()` a wiring na moduly v `lib/` |
+| `lib/i18n.js` | jazyk, `t()`, `applyStaticI18n` |
+| `lib/state.js` | zdieľaný `state`, konštanty, `fetchJSON` + `localStorage` cache |
+| `lib/pricing.js` | band/cena helpery, `renderPricing`, kalkulačka (UI) |
+| `lib/watcher.js` | sledované sloty + obľúbené |
+| `lib/render.js` | heatmapa, „Dnes", „Práve teraz", finder, share/slot modaly, trend, theme/views/tabs, URL sync, ICS export |
+| `lib/helpers.js` | čisté helpery, UMD (pokryté `tests/helpers.test.mjs`) |
+| `lib/pricing-calc.js` | čistá kalkulačka (parse, band, price, calculate), UMD (pokryté `tests/test_pricing_calc.mjs`) |
 | `i18n.json` | preklady (sk + en) |
 | `schedule.json` | údaje 25 m bazéna |
 | `schedule-50m.json` | údaje 50 m bazéna |
@@ -254,7 +281,7 @@ workflow `update-data.yml` commituje čerstvé JSON-y do `main`,
 | `manifest.json`, `sw.js`, `icons/` | PWA (pridanie na plochu, offline cache) |
 | `og.png` | pred-renderovaný share obrázok (denný) |
 | `scripts/` | scraper (`update_data.py`), trend (`compute_trend.py`), OG (`generate_og.py`) |
-| `tests/` | pytest (scraper golden + trend holiday filter) a node `--test` (JS helpery) |
+| `tests/` | pytest (scraper golden + trend holiday filter) a node `--test` (JS helpery + kalkulačka) |
 | `docs/` | snímky pre README |
 
 ## Dátový formát rozvrhu
