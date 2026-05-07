@@ -8,10 +8,6 @@ projekt bude rozvíjať.
 
 ### Nové používateľské funkcie
 
-- [ ] **Kalkulačka ceny** — typ vstupu × dĺžka × všedný deň/sviatok → EUR.
-      `pricing.json` dnes slúži len na zobrazenie tabuľky; tento upgrade
-      z neho robí nástroj. Pozor na reálne STARZ pravidlá (permanentky,
-      zľavy, detské/seniorské sadzby).
 - [ ] **Flexibilný watcher** — „ktorýkoľvek pracovný večer 18–20 s
       ≥2 dráhami ≥60 min" namiesto presného dňa+času. Súčasný watcher je
       príliš rigidný pre reálne plánovanie. Scan priestoru je malý
@@ -69,13 +65,30 @@ projekt bude rozvíjať.
 
 ### Interné
 
-- [ ] **Rozdeliť `app.js`** — ~1700 riadkov; ES moduly (render / data /
-      watcher / i18n) by zlepšili orientáciu. Bez priameho dopadu na UX.
-
 ## Hotové — používateľské funkcie
 
 Tieto položky sú pokryté aj v sekcii **Funkcie** hlavného README.
 
+- [x] **Kalkulačka ceny** — pridaný panel **Kalkulačka ceny** v záložke
+      **Cenník**. Vstupy: typ vstupenky (štandard / zľavnené ŤZP-do-18),
+      dĺžka (60 / 90 min), dátum a čas. Pool je viazaný na aktívny tab
+      (50 m / 25 m). Výstup: cena v EUR, kód cenníkového riadku, badge
+      pásma (peak / offpeak), badge sviatku, prípadné prechodné pásmo
+      (jednotná cena 3,00 € na 25 m do `transitionalUntil`). Mimo predaja
+      vstupeniek (napr. 3:00, 23:00) zobrazí chybu „skúste 6:00–22:00",
+      lebo nová `bandFor` v `lib/pricing-calc.js` je striktnejšia ako
+      pôvodná `bandForMinOnDate` v `app.js` (žiadny fallback na offpeak).
+      Pre víkend / sviatok sú spojené ranges peak ∪ offpeak ošetrené ako
+      offpeak (label v `pricing.json` to indikuje, hoci jeho `ranges`
+      kryjú len pracovný deň). Logika je v čistom UMD module
+      `lib/pricing-calc.js` (tabulkové parsy „4,00", „8 × 30,00 = 240,00",
+      `formatEUR` v slovenskom formáte) a má 20 unit-testov v
+      `tests/test_pricing_calc.mjs` — pokrývajú parse, band-detekciu pre
+      pracovný deň / víkend / sviatok / mimo hodín, transitional override,
+      missing-input chyby. UI v `lib/pricing.js`
+      (`setupCalculator` / `renderCalculator`), HTML v `index.html`,
+      i18n kľúče `calc.*` (sk + en), štýly `.pricing-calc *` v
+      `styles.css`.
 - [x] **Trend citlivý na sviatky** — `scripts/compute_trend.py` teraz
       načítava `pricing.json.holidays` cez `load_holidays()` a preskočí
       každý `(pool, iso)` zápis, kde `iso` je sviatok, takže sviatočné
@@ -222,6 +235,22 @@ Tieto položky sú pokryté aj v sekcii **Funkcie** hlavného README.
 Veci, ktoré používateľ priamo nevidí, ale chránia projekt pred regresiou
 alebo zjednodušujú prevádzku.
 
+- [x] **Rozdeliť `app.js`** — pôvodný 1999-riadkový `app.js` rozdelený
+      na ES moduly v `lib/` a tenký bootstrap (`app.js` má teraz 129
+      riadkov). Rozdelenie podľa zodpovednosti: `lib/i18n.js` (jazyk +
+      `t()` + `applyStaticI18n`), `lib/state.js` (zdieľaný `state`,
+      konštanty, `fetchJSON` + `localStorage` cache), `lib/pricing.js`
+      (band/cena helpery + `renderPricing` + kalkulačka), `lib/watcher.js`
+      (sledované sloty + obľúbené), `lib/render.js` (heatmapa, „Dnes",
+      „Práve teraz", finder, share/slot modaly, trend, theme/views/tabs,
+      URL sync, ICS export). Cyklické závislosti `render` ↔ `watcher`
+      (toggleFavorite musí re-renderovať) sú vyriešené registry-pattern-om
+      `setRenderHook` / `setOnPoolChange` v príslušných moduloch. HTML
+      načíta `app.js` ako `<script type="module">`; `lib/helpers.js` a
+      `lib/pricing-calc.js` ostávajú UMD a nahrávajú sa cez bežný
+      `<script>`, takže existujúce `tests/helpers.test.mjs` (Node
+      `createRequire`) ostávajú nedotknuté. Žiadne semantické zmeny
+      v UI — všetkých 35 JS testov + 8 Python testov prešlo.
 - [x] **Golden-file test scrapera** — CI test, ktorý padne pri zmene
       štruktúry XLSX, chytí problém skôr než sa dáta zastarajú.
       `tests/test_update_data.py` generuje synthetic XLSX cez `openpyxl`,
