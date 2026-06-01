@@ -8,12 +8,13 @@
   "transitional": "V čase od pondelka 22.12.2025 do nedele 11.01.2026 vrátane platí na 25 m bazéne jednotné vstupné 3,00 € / 90 min za osobu.",
   "transitionalUntil": "2026-01-11",
   "status": {
-    "upToDate": true,
+    "upToDate": false,
     "referenceSha256": "86116a00595f067ef90903568f1105df5591aa9d5e1ea15c4524bc6c94844daf",
-    "storedSha256": "86116a00595f067ef90903568f1105df5591aa9d5e1ea15c4524bc6c94844daf",
-    "currentUrl": "https://bratislavask.s3.bratislava.sk/upload/S_Ta_RZ_Mestska_Plavaren_Pasienky_Cennik_f4f3962d9a.pdf",
+    "storedSha256": "a79fe678e0cdbf35d67442f65ba758bb60afab58bd51c9ca6f5cf0331d4e5bf3",
+    "currentUrl": "https://bratislavask.s3.bratislava.sk/upload/2026_Mestska_Plavaren_Pasienky_Cennik_d07a229560.pdf",
     "sourcePage": "https://bratislava.sk/vzdelavanie-a-volny-cas/starz/prevadzky-sportoviska/mestska-plavaren-pasienky-25m",
-    "lastChecked": "2026-06-01T10:33Z"
+    "lastChecked": "2026-06-01T16:47Z",
+    "reason": "pdf-changed"
   },
   "holidays": [],
   "bands": {
