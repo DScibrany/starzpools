@@ -1,7 +1,7 @@
 {
   "updated": "2026-06-29",
   "windowWeeks": 8,
-  "totalObservations": 30,
+  "totalObservations": 28,
   "holidayDatesExcluded": [],
   "pools": {
     "25m": {
@@ -1004,10 +1004,10 @@
             0.0,
             0.0,
             0.0,
-            7.67,
-            7.67,
-            7.67,
-            7.67,
+            7.5,
+            7.5,
+            7.5,
+            7.5,
             8.0,
             8.0,
             8.0,
@@ -1069,7 +1069,7 @@
             0.0,
             0.0
           ],
-          "samples": 3
+          "samples": 2
         },
         "nedeľa": {
           "avg": [
@@ -1150,7 +1150,7 @@
             0.0,
             0.0
           ],
-          "samples": 3
+          "samples": 2
         }
       }
     }
