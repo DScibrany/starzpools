@@ -1,7 +1,7 @@
 {
   "updated": "2026-09-22",
   "windowWeeks": 8,
-  "totalObservations": 29,
+  "totalObservations": 28,
   "holidayDatesExcluded": [],
   "pools": {
     "25m": {
@@ -575,7 +575,7 @@
             0.0,
             0.0
           ],
-          "samples": 3
+          "samples": 2
         }
       }
     },
